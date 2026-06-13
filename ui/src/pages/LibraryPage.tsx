@@ -12,7 +12,6 @@ import { ApiError, type Classification, type DocumentCard, type ViewMode } from 
 import { api } from "../api";
 import { Icon } from "../components/Icon";
 import { Modal } from "../components/Modal";
-import { PageHeader } from "../components/PageHeader";
 import { ViewToggle } from "../components/ViewToggle";
 import { VirtualDocumentList } from "../components/VirtualDocumentList";
 import type { Notify } from "../components/types";
@@ -139,23 +138,56 @@ export function LibraryPage(props: { notify: Notify }) {
 
   return (
     <section class="page library-page">
-      <PageHeader
-        title="Library"
-        subtitle="Indexed papers, metadata, and classifications."
-        right={
-          <div class="header-actions">
-            <button
-              class="icon-text-button"
-              type="button"
-              onClick={() => setImportsOpen(true)}
-            >
-              <Icon name="folder-plus" />
-              <span>Import folder</span>
-            </button>
-            <ViewToggle mode={mode()} onMode={setMode} />
-          </div>
-        }
-      />
+      <header class="library-command-bar">
+        <div class="library-search-field">
+          <Icon name="search" />
+          <input
+            aria-label="Filter library"
+            placeholder="Search title, authors, DOI, or keywords..."
+            value={query()}
+            onInput={(event) => setQuery(event.currentTarget.value)}
+          />
+          <kbd>/</kbd>
+        </div>
+        <button class="paper-control" type="button">
+          <Icon name="filter" />
+          <span>Filters</span>
+          <Icon name="chevron-down" />
+        </button>
+        <button class="paper-control" type="button">
+          <Icon name="sort" />
+          <span>Sort: Date added</span>
+          <Icon name="chevron-down" />
+        </button>
+        <button class="paper-control collection-control" type="button">
+          <span>
+            <small>Collections</small>
+            All Papers
+          </span>
+          <Icon name="chevron-down" />
+        </button>
+        <button
+          class="archive-button"
+          type="button"
+          aria-label="Import folder"
+          onClick={() => setImportsOpen(true)}
+        >
+          <Icon name="folder-plus" />
+          <span>Archive Papers</span>
+          <Icon name="chevron-down" />
+        </button>
+      </header>
+      <div class="library-title-row">
+        <div class="library-heading">
+          <h1>All Papers</h1>
+          <span>{items().length.toLocaleString()} papers</span>
+        </div>
+        <div class="library-view-row">
+          <ViewToggle mode={mode()} onMode={setMode} />
+          <span class="selection-state">0 selected</span>
+          <span class="page-size-state">View: 8 per page</span>
+        </div>
+      </div>
       <Modal
         title="Folder imports"
         open={importsOpen()}
@@ -214,14 +246,6 @@ export function LibraryPage(props: { notify: Notify }) {
           </Show>
         </div>
       </Modal>
-      <div class="library-toolbar">
-        <input
-          aria-label="Filter library"
-          placeholder="Filter by title, file name, or path"
-          value={query()}
-          onInput={(event) => setQuery(event.currentTarget.value)}
-        />
-      </div>
       <VirtualDocumentList
         mode={mode()}
         documents={items()}

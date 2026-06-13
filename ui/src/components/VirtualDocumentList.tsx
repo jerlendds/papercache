@@ -20,7 +20,7 @@ export function VirtualDocumentList(props: {
   const [scrollTop, setScrollTop] = createSignal(0);
   const [viewportHeight, setViewportHeight] = createSignal(720);
   let viewport!: HTMLDivElement;
-  const rowHeight = () => (props.mode === "grid" ? 248 : 132);
+  const rowHeight = () => (props.mode === "grid" ? 350 : 156);
   const columns = () => (props.mode === "grid" ? 3 : 1);
   const rowCount = createMemo(() =>
     Math.ceil(props.documents.length / columns()),

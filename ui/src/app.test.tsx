@@ -166,7 +166,7 @@ describe('<App />', () => {
     expect(window.localStorage.getItem('papercache.authToken')).toBe('saved-token');
   });
 
-  test('folder import events update one progress toast', async () => {
+  test('folder import events update sidebar progress without scan toast', async () => {
     const screen = render(() => <App />);
     const source = MockEventSource.instances[0];
 
@@ -198,8 +198,9 @@ describe('<App />', () => {
       }),
     );
 
-    await waitFor(() => expect(screen.getByText('2/2 PDF files imported!')).toBeInTheDocument());
-    expect(screen.queryByText('1/2 PDF files imported...')).not.toBeInTheDocument();
+    await waitFor(() => expect(screen.getByText('100%')).toBeInTheDocument());
+    expect(screen.getByLabelText('Total ingest progress')).toHaveTextContent('100%');
+    expect(screen.queryByText('Scanning folder for PDFs...')).not.toBeInTheDocument();
   });
 
   test('library refetches when import events arrive', async () => {

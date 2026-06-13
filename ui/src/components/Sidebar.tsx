@@ -1,7 +1,7 @@
 import { For } from "solid-js";
 
 import logoUrl from "../assets/logo.svg";
-import type { Route } from "./types";
+import type { IngestProgress, Route } from "./types";
 import { Icon } from "./Icon";
 
 const paperRoutes: Array<{
@@ -58,6 +58,7 @@ const workspaceRoutes: Array<{
 
 export function Sidebar(props: {
   route: Route;
+  progress: IngestProgress;
   onNavigate: (route: Route) => void;
   onOpenSettings: () => void;
 }) {
@@ -77,6 +78,7 @@ export function Sidebar(props: {
       </nav>
       <div class="sidebar-footer">
         <span class="nav-section-label">System</span>
+        <ProgressBadge progress={props.progress} />
         <button
           class="nav-button"
           aria-label="Settings"
@@ -89,6 +91,33 @@ export function Sidebar(props: {
         </button>
       </div>
     </aside>
+  );
+}
+
+function ProgressBadge(props: { progress: IngestProgress }) {
+  const value = () =>
+    props.progress.percent === null ? "--" : `${props.progress.percent}%`;
+  const tooltip = () => {
+    if (!props.progress.active) {
+      return "No active ingest or indexing work";
+    }
+    if (props.progress.total === null) {
+      return `${props.progress.imported} PDFs ingested. Scan total is still being discovered.`;
+    }
+    return `${props.progress.imported}/${props.progress.total} PDFs ingested from active folder imports.`;
+  };
+
+  return (
+    <div
+      class="progress-badge"
+      aria-label="Total ingest progress"
+      tabIndex={0}
+    >
+      <span>{value()}</span>
+      <span class="tooltip" role="tooltip">
+        {tooltip()}
+      </span>
+    </div>
   );
 }
 

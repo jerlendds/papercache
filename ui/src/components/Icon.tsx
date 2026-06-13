@@ -46,6 +46,37 @@ export function Icon(props: { name: string }) {
           <path d="M4.2 16.5 6.8 15" />
           <path d="M17.2 9 19.8 7.5" />
         </Match>
+        <Match when={props.name === 'filter'}>
+          <path d="M4 5h16l-6 7v5l-4 2v-7z" />
+        </Match>
+        <Match when={props.name === 'sort'}>
+          <path d="M8 5v14" />
+          <path d="m5 8 3-3 3 3" />
+          <path d="M16 19V5" />
+          <path d="m13 16 3 3 3-3" />
+        </Match>
+        <Match when={props.name === 'chevron-down'}>
+          <path d="m7 10 5 5 5-5" />
+        </Match>
+        <Match when={props.name === 'star'}>
+          <path d="m12 3 2.7 5.5 6.1.9-4.4 4.3 1 6-5.4-2.9-5.4 2.9 1-6-4.4-4.3 6.1-.9z" />
+        </Match>
+        <Match when={props.name === 'pin'}>
+          <path d="M8 4h8" />
+          <path d="M10 4v6l-2 3h8l-2-3V4" />
+          <path d="M12 13v7" />
+        </Match>
+        <Match when={props.name === 'more'}>
+          <circle cx="12" cy="5" r="1" />
+          <circle cx="12" cy="12" r="1" />
+          <circle cx="12" cy="19" r="1" />
+        </Match>
+        <Match when={props.name === 'quote'}>
+          <path d="M8 11H5c0-3 1-5 4-6" />
+          <path d="M18 11h-3c0-3 1-5 4-6" />
+          <path d="M5 11v5h5v-5" />
+          <path d="M15 11v5h5v-5" />
+        </Match>
       </Switch>
     </svg>
   );

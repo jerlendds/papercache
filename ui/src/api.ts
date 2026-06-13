@@ -11,13 +11,26 @@ export type Classification = {
 
 export type DocumentCard = {
   id: string;
+  folder_id?: string | null;
   path: string;
+  canonical_path?: string | null;
   title?: string | null;
   file_name: string;
+  file_size?: number | null;
+  modified_at?: string | null;
+  sha256?: string | null;
+  authors?: string[];
+  year?: number | null;
+  doi?: string | null;
+  arxiv_id?: string | null;
   status: string;
+  error?: string | null;
   page_count?: number | null;
   classification?: Classification | null;
   cover_url: string;
+  file_url?: string;
+  created_at?: string;
+  updated_at?: string;
 };
 
 export type SearchResult = {

@@ -75,11 +75,20 @@ pub async fn ingest_pdf(
         let path = path.clone();
         move || extract_text(&path)
     })
-    .await?;
+    .await;
     let extract = match extract_result {
-        Ok(extract) => extract,
-        Err(error) => {
+        Ok(Ok(extract)) => extract,
+        Ok(Err(error)) => {
             let message = error.to_string();
+            documents::mark_failed(db, document_id, &message).await?;
+            anyhow::bail!(message);
+        }
+        Err(error) => {
+            let message = if error.is_panic() {
+                format!("PDF text extraction panicked: {error}")
+            } else {
+                format!("PDF text extraction task failed: {error}")
+            };
             documents::mark_failed(db, document_id, &message).await?;
             anyhow::bail!(message);
         }
