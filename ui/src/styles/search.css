@@ -1,0 +1,114 @@
+.search-page {
+  padding-top: 90px;
+}
+
+.search-center {
+  margin: 0 auto;
+  max-width: 760px;
+  position: relative;
+  text-align: center;
+}
+
+.search-box {
+  align-items: center;
+  background: var(--paper-card);
+  border: 2px solid var(--ink);
+  border-radius: 8px;
+  box-shadow: 3px 4px 0 rgb(23 34 60 / 16%);
+  display: flex;
+  gap: 12px;
+  margin-top: 18px;
+  padding: 0 16px;
+}
+
+.search-box svg {
+  fill: none;
+  height: 22px;
+  stroke: var(--ink-soft);
+  stroke-width: 2;
+  width: 22px;
+}
+
+.search-box input,
+.library-toolbar input,
+.classification-form input,
+.folder-import-form input {
+  border: 0;
+  min-width: 0;
+  outline: 0;
+}
+
+.search-box input {
+  font-size: 18px;
+  height: 56px;
+  width: 100%;
+}
+
+.suggestions {
+  background: var(--paper-card);
+  border: 2px solid var(--ink);
+  border-radius: 8px;
+  box-shadow: 4px 5px 0 rgb(23 34 60 / 16%);
+  left: 0;
+  margin-top: 8px;
+  overflow: hidden;
+  position: absolute;
+  right: 0;
+  text-align: left;
+  z-index: 5;
+}
+
+.suggestions button {
+  background: transparent;
+  border: 0;
+  cursor: pointer;
+  display: block;
+  padding: 12px 14px;
+  text-align: left;
+  width: 100%;
+}
+
+.suggestions button:hover {
+  background: #f3edda;
+}
+
+.suggestions span {
+  color: var(--ink-soft);
+  display: block;
+  font-size: 13px;
+  margin-top: 3px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.segmented {
+  background: #efe7cf;
+  border: 2px solid var(--ink);
+  border-radius: 8px;
+  display: inline-flex;
+  gap: 2px;
+  padding: 3px;
+}
+
+.segmented button {
+  background: transparent;
+  border: 0;
+  border-radius: 6px;
+  color: var(--ink-soft);
+  cursor: pointer;
+  min-width: 74px;
+  padding: 8px 10px;
+}
+
+.segmented button.selected {
+  background: var(--ink);
+  color: var(--paper-card);
+  box-shadow: none;
+}
+
+.search-page > .segmented {
+  position: absolute;
+  right: 28px;
+  top: 28px;
+}

@@ -1,0 +1,196 @@
+.main-view {
+  min-width: 0;
+}
+
+.page {
+  min-height: 100vh;
+  padding: 28px;
+  position: relative;
+}
+
+.library-page {
+  display: flex;
+  flex-direction: column;
+  height: 100vh;
+  min-height: 0;
+  overflow: hidden;
+  padding: 0;
+}
+
+.page-header {
+  align-items: center;
+  display: flex;
+  gap: 20px;
+  justify-content: space-between;
+  margin-bottom: 20px;
+}
+
+.library-command-bar {
+  align-items: center;
+  background: rgb(255 251 233 / 78%);
+  border-bottom: 2px solid rgb(23 34 60 / 16%);
+  display: grid;
+  gap: 18px;
+  grid-template-columns: minmax(280px, 1fr) auto auto minmax(180px, 230px) auto;
+  padding: 20px 28px;
+}
+
+.library-search-field,
+.paper-control,
+.archive-button {
+  align-items: center;
+  background: rgb(255 251 233 / 86%);
+  border: 2px solid rgb(23 34 60 / 18%);
+  border-radius: 8px;
+  color: var(--ink);
+  display: flex;
+  gap: 10px;
+  height: 46px;
+  padding: 0 14px;
+}
+
+.library-search-field svg,
+.paper-control svg,
+.archive-button svg {
+  fill: none;
+  height: 18px;
+  stroke: currentColor;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  stroke-width: 2;
+  width: 18px;
+}
+
+.library-search-field input {
+  background: transparent;
+  border: 0;
+  color: var(--ink);
+  min-width: 0;
+  outline: 0;
+  width: 100%;
+}
+
+.library-search-field kbd {
+  align-items: center;
+  border: 1px solid rgb(23 34 60 / 18%);
+  border-radius: 7px;
+  color: var(--ink-soft);
+  display: flex;
+  height: 28px;
+  justify-content: center;
+  min-width: 28px;
+}
+
+.paper-control {
+  cursor: pointer;
+  font-weight: 700;
+  justify-content: center;
+}
+
+.collection-control {
+  justify-content: space-between;
+}
+
+.collection-control span {
+  display: grid;
+  gap: 2px;
+  text-align: left;
+}
+
+.collection-control small {
+  color: var(--ink-soft);
+  font-size: 11px;
+  font-weight: 600;
+}
+
+.archive-button {
+  background: var(--red);
+  border-color: var(--red);
+  color: var(--paper-card);
+  cursor: pointer;
+  font-weight: 800;
+  justify-content: center;
+  min-width: 170px;
+}
+
+.library-title-row {
+  align-items: center;
+  border-bottom: 2px solid rgb(23 34 60 / 12%);
+  display: flex;
+  justify-content: space-between;
+  padding: 20px 28px 16px;
+}
+
+.library-heading {
+  align-items: baseline;
+  display: flex;
+  gap: 18px;
+}
+
+.library-heading h1 {
+  font-family: Georgia, "Times New Roman", serif;
+  font-size: 36px;
+}
+
+.library-heading span,
+.selection-state,
+.page-size-state {
+  color: var(--ink-soft);
+}
+
+.library-view-row {
+  align-items: center;
+  display: flex;
+  gap: 18px;
+}
+
+h1,
+h2,
+p {
+  margin: 0;
+}
+
+h1 {
+  font-size: 28px;
+  line-height: 1.2;
+}
+
+h2 {
+  font-size: 16px;
+  line-height: 1.25;
+}
+
+.page-header p,
+.placeholder-page p {
+  color: var(--ink-soft);
+  margin-top: 6px;
+}
+
+.header-actions {
+  align-items: center;
+  display: flex;
+  gap: 10px;
+}
+
+.icon-text-button {
+  align-items: center;
+  background: var(--blue);
+  border: 2px solid var(--ink);
+  border-radius: 6px;
+  color: #ffffff;
+  cursor: pointer;
+  display: inline-flex;
+  gap: 8px;
+  height: 38px;
+  padding: 0 12px;
+}
+
+.icon-text-button svg {
+  fill: none;
+  height: 18px;
+  stroke: currentColor;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  stroke-width: 2;
+  width: 18px;
+}

@@ -1,0 +1,79 @@
+.modal-backdrop {
+  align-items: center;
+  background: rgb(23 34 60 / 42%);
+  display: flex;
+  inset: 0;
+  justify-content: center;
+  padding: 24px;
+  position: fixed;
+  z-index: 60;
+}
+
+.modal {
+  background:
+    linear-gradient(
+        to bottom,
+        transparent 31px,
+        rgb(59 143 179 / 16%) 32px,
+        transparent 33px
+      )
+      0 7px / 100% 32px,
+    var(--paper-card);
+  border: 2px solid var(--ink);
+  border-radius: 8px;
+  box-shadow: 8px 10px 0 rgb(23 34 60 / 20%);
+  max-height: min(720px, calc(100vh - 48px));
+  overflow: hidden;
+  width: min(760px, 100%);
+}
+
+.modal-header {
+  align-items: center;
+  border-bottom: 2px dashed rgb(23 34 60 / 28%);
+  display: flex;
+  justify-content: space-between;
+  min-height: 58px;
+  padding: 0 16px;
+}
+
+.modal-header button {
+  background: transparent;
+  border: 0;
+  border-radius: 6px;
+  color: var(--ink-soft);
+  cursor: pointer;
+  font-weight: 700;
+  height: 34px;
+  width: 34px;
+}
+
+.modal-header button:hover {
+  background: #f3edda;
+}
+
+.modal-body {
+  display: grid;
+  gap: 16px;
+  max-height: calc(min(720px, 100vh - 48px) - 58px);
+  overflow: auto;
+  padding: 16px;
+}
+
+.settings-field {
+  color: var(--ink-soft);
+  display: grid;
+  font-size: 13px;
+  font-weight: 700;
+  gap: 6px;
+}
+
+.settings-field input {
+  background: var(--paper-soft);
+  border: 2px solid var(--ink);
+  border-radius: 8px;
+  color: var(--ink);
+  height: 42px;
+  outline: 0;
+  padding: 0 12px;
+  width: 100%;
+}

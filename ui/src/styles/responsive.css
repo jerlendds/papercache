@@ -1,0 +1,51 @@
+@media (max-width: 900px) {
+  .document-collection.grid {
+    grid-template-columns: 1fr;
+  }
+
+  .folder-import-form {
+    align-items: stretch;
+    grid-template-columns: 1fr;
+  }
+
+  .checkbox-field {
+    height: auto;
+  }
+
+  .job-row {
+    grid-template-columns: 1fr;
+    padding: 12px 14px;
+  }
+}
+
+@media (max-width: 640px) {
+  :root {
+    --sidebar-width: 54px;
+  }
+
+  .app-shell {
+    grid-template-columns: var(--sidebar-width) minmax(0, 1fr);
+  }
+
+  .page {
+    padding: 18px;
+  }
+
+  .search-page {
+    padding-top: 84px;
+  }
+
+  .search-page > .segmented {
+    right: 18px;
+    top: 18px;
+  }
+
+  .page-header {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+
+  .header-actions {
+    width: 100%;
+  }
+}

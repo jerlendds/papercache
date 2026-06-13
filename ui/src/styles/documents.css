@@ -1,0 +1,247 @@
+.virtual-viewport {
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow: auto;
+  padding: 18px 28px 28px;
+}
+
+.document-collection {
+  display: grid;
+  gap: 18px;
+}
+
+.document-collection.grid {
+  grid-template-columns: repeat(4, minmax(260px, 1fr));
+}
+
+.document-collection.list {
+  grid-template-columns: 1fr;
+}
+
+.document-collection.results {
+  margin-top: 42px;
+}
+
+.paper-card {
+  background: var(--paper-card);
+  border: 2px solid rgb(23 34 60 / 18%);
+  border-radius: 8px;
+  box-shadow: 0 4px 14px rgb(23 34 60 / 12%);
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  min-width: 0;
+  padding: 14px;
+}
+
+.paper-card.grid {
+  min-height: 328px;
+}
+
+.paper-card.list {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  min-height: 136px;
+}
+
+.paper-card-actions {
+  align-items: center;
+  display: grid;
+  grid-template-columns: 18px 18px 1fr 18px;
+  min-height: 22px;
+}
+
+.paper-card-actions button {
+  background: transparent;
+  border: 2px solid rgb(23 34 60 / 18%);
+  border-radius: 3px;
+  height: 18px;
+  padding: 0;
+  width: 18px;
+}
+
+.paper-card-actions svg {
+  fill: none;
+  height: 16px;
+  justify-self: center;
+  stroke: var(--ink-soft);
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  stroke-width: 2;
+  width: 16px;
+}
+
+.paper-card-actions svg:last-child {
+  fill: #f8b62d;
+  stroke: #b87900;
+}
+
+.paper-main {
+  display: grid;
+  gap: 16px;
+  grid-template-columns: 132px minmax(0, 1fr);
+}
+
+.paper-card.list .paper-main {
+  grid-template-columns: 82px minmax(0, 1fr);
+}
+
+.cover {
+  align-items: center;
+  aspect-ratio: 3 / 4;
+  background:
+    radial-gradient(
+        circle at 10px 10px,
+        rgb(23 34 60 / 10%) 1.1px,
+        transparent 1.2px
+      )
+      0 0 / 14px 14px,
+    #efe7cf;
+  border: 2px solid rgb(23 34 60 / 62%);
+  border-radius: 6px;
+  color: var(--red);
+  display: flex;
+  font-weight: 800;
+  justify-content: center;
+  overflow: hidden;
+  width: 100%;
+}
+
+.cover img {
+  height: 100%;
+  object-fit: cover;
+  width: 100%;
+}
+
+.paper-body {
+  min-width: 0;
+}
+
+.paper-file-row,
+.paper-date-row {
+  align-items: center;
+  color: var(--ink-soft);
+  display: flex;
+  flex-wrap: wrap;
+  font-size: 13px;
+  gap: 10px;
+  margin-bottom: 12px;
+}
+
+.file-badge {
+  background: #fff4f4;
+  border: 1px solid #f0c4c6;
+  border-radius: 6px;
+  color: var(--red);
+  font-size: 12px;
+  font-weight: 800;
+  padding: 5px 7px;
+}
+
+.paper-date-row {
+  margin-bottom: 0;
+  margin-top: 12px;
+}
+
+.paper-date-row span {
+  border: 1px solid rgb(23 34 60 / 16%);
+  border-radius: 6px;
+  padding: 4px 7px;
+}
+
+.filepath {
+  color: var(--ink-soft);
+  font-size: 13px;
+  margin-top: 6px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.meta-line {
+  color: var(--ink-soft);
+  display: flex;
+  flex-wrap: wrap;
+  font-size: 13px;
+  gap: 8px;
+  margin-top: 10px;
+}
+
+.meta-line span,
+.topic-row span,
+.status-pill {
+  background: #efe7cf;
+  border: 1px solid rgb(23 34 60 / 22%);
+  border-radius: 999px;
+  padding: 4px 8px;
+}
+
+.topic-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-top: 10px;
+}
+
+.topic-row span {
+  background: var(--mint);
+  color: #244d3a;
+  font-size: 12px;
+}
+
+.classification-form {
+  display: flex;
+  gap: 8px;
+  margin-top: auto;
+}
+
+.classification-form input {
+  background: var(--paper-soft);
+  border: 2px solid rgb(23 34 60 / 34%);
+  border-radius: 6px;
+  height: 34px;
+  padding: 0 10px;
+}
+
+.classification-form button {
+  background: var(--blue);
+  border: 2px solid var(--ink);
+  border-radius: 6px;
+  color: #ffffff;
+  cursor: pointer;
+  min-width: 34px;
+  padding: 0 10px;
+}
+
+.paper-footer {
+  border-top: 1px solid rgb(23 34 60 / 12%);
+  color: var(--ink-soft);
+  display: flex;
+  font-size: 12px;
+  justify-content: space-between;
+  margin-top: auto;
+  padding-top: 12px;
+}
+
+.paper-footer div {
+  align-items: center;
+  display: flex;
+  gap: 8px;
+  min-width: 0;
+}
+
+.paper-footer span {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.paper-footer svg {
+  fill: none;
+  height: 16px;
+  stroke: currentColor;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  stroke-width: 2;
+  width: 16px;
+}

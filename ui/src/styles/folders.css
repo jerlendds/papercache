@@ -1,0 +1,93 @@
+.folder-import-form {
+  align-items: end;
+  display: grid;
+  gap: 12px;
+  grid-template-columns: minmax(260px, 1fr) auto auto;
+}
+
+.folder-import-form label {
+  color: var(--ink-soft);
+  display: grid;
+  font-size: 13px;
+  font-weight: 700;
+  gap: 6px;
+}
+
+.folder-import-form input[type="text"],
+.folder-import-form label > input:not([type]) {
+  background: var(--paper-soft);
+  border: 2px solid var(--ink);
+  border-radius: 8px;
+  color: var(--ink);
+  height: 42px;
+  padding: 0 12px;
+  width: 100%;
+}
+
+.checkbox-field {
+  align-items: center;
+  display: flex !important;
+  gap: 8px !important;
+  height: 42px;
+}
+
+.checkbox-field input {
+  height: 16px;
+  width: 16px;
+}
+
+.folder-import-form button,
+.folder-row button {
+  background: var(--blue);
+  border: 2px solid var(--ink);
+  border-radius: 6px;
+  color: #ffffff;
+  cursor: pointer;
+  height: 42px;
+  padding: 0 14px;
+}
+
+.folder-import-form button:disabled,
+.folder-row button:disabled {
+  background: #d8d1bd;
+  cursor: not-allowed;
+}
+
+.folder-list {
+  display: grid;
+  gap: 8px;
+}
+
+.folder-row {
+  align-items: center;
+  background: var(--paper-soft);
+  border: 2px solid rgb(23 34 60 / 82%);
+  border-radius: 8px;
+  display: grid;
+  gap: 12px;
+  grid-template-columns: minmax(0, 1fr) auto;
+  padding: 10px 12px;
+}
+
+.folder-main {
+  display: grid;
+  gap: 4px;
+  min-width: 0;
+}
+
+.folder-main strong,
+.folder-main span {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.folder-main strong {
+  font-size: 14px;
+}
+
+.folder-main span,
+.folder-empty {
+  color: var(--ink-soft);
+  font-size: 13px;
+}

@@ -1,0 +1,58 @@
+.placeholder-page {
+  align-items: center;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  text-align: center;
+}
+
+.job-table {
+  background: var(--paper-card);
+  border: 2px solid var(--ink);
+  border-radius: 8px;
+  box-shadow: 4px 5px 0 rgb(23 34 60 / 12%);
+  overflow: hidden;
+}
+
+.job-row {
+  align-items: center;
+  display: grid;
+  gap: 12px;
+  grid-template-columns: 1.2fr 0.8fr 0.7fr 1.2fr 1.6fr;
+  min-height: 54px;
+  padding: 0 14px;
+}
+
+.job-row + .job-row {
+  border-top: 1px dashed rgb(23 34 60 / 22%);
+}
+
+.job-row.header {
+  background: #efe7cf;
+  color: var(--ink-soft);
+  font-size: 13px;
+  font-weight: 700;
+}
+
+.status-pill {
+  justify-self: start;
+}
+
+.status-pill.running {
+  background: var(--marker);
+}
+
+.status-pill.failed {
+  background: #efb0b4;
+}
+
+.status-pill.succeeded {
+  background: var(--mint);
+}
+
+.error-text {
+  color: var(--red);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}

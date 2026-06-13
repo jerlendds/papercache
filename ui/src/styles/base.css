@@ -1,0 +1,62 @@
+:root {
+  --sidebar-width: 62px;
+  --paper: #f7f1db;
+  --paper-soft: #fbf7e8;
+  --paper-card: #fffbe9;
+  --paper-line: #cad9d2;
+  --ink: #17223c;
+  --ink-soft: #5f6673;
+  --red: #c52e35;
+  --blue: #3b8fb3;
+  --mint: #c9dfc7;
+  --marker: #ffd86b;
+  --graphite: #596069;
+  color: var(--ink);
+  background: var(--paper);
+  font-family:
+    Inter,
+    ui-sans-serif,
+    system-ui,
+    -apple-system,
+    BlinkMacSystemFont,
+    "Segoe UI",
+    sans-serif;
+  font-synthesis: none;
+  text-rendering: optimizeLegibility;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  background: var(--paper);
+  margin: 0;
+  min-width: 320px;
+}
+
+#root {
+  background:
+    linear-gradient(
+        to bottom,
+        transparent 31px,
+        var(--paper-line) 32px,
+        transparent 33px
+      )
+      0 7px / 100% 32px,
+    linear-gradient(
+      to right,
+      transparent calc(var(--sidebar-width) - 2px),
+      rgb(197 46 53 / 70%) calc(var(--sidebar-width) - 1px),
+      transparent var(--sidebar-width)
+    ),
+    var(--paper);
+  min-width: 320px;
+  min-height: 100vh;
+}
+
+button,
+input {
+  font: inherit;
+}
+
