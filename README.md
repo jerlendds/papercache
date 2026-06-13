@@ -8,6 +8,8 @@ Your research library, indexed where it lives. Local-first. Single binary. Built
 cd ui && npm run build && cd .. && cargo run
 ```
 
+- Visit [localhost:3141](http://localhost:3141/)
+
 ## Why?
 
 I have thousands of PDF papers on my computer which are unfortunately mostly unorganized. I want a more effective solution for automatically organizing and classifying my document collection. So I've started `papercache`. The idea is to create something lightweight that will run locally as background daemon 24/7 which indexes at night, or when requested, so the local models I use via `LMStudio` for classification/RAG/etc don't use up all the compute I have when I'm busy with developing other things. I'm already running WakApi as a background daemon for tracking my coding time and I quite like this pattern.
