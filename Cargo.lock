@@ -4412,6 +4412,7 @@ dependencies = [
  "async-stream",
  "blake3",
  "chrono",
+ "image",
  "lancedb",
  "lopdf",
  "notify",

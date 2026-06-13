@@ -67,7 +67,7 @@
 .nav-button::before {
   background: var(--red);
   content: "";
-  inset: -4px;
+  inset: -5px;
   -webkit-mask: url("../assets/ink-splatter.svg") center / contain no-repeat;
   mask: url("../assets/ink-splatter.svg") center / contain no-repeat;
   opacity: 0;

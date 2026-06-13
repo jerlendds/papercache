@@ -19,6 +19,8 @@ import { formatTime } from "../components/utils";
 
 type LibraryRefreshEvent = {
   type?: string;
+  document_id?: string;
+  folder_id?: string;
 };
 
 export function LibraryPage(props: { notify: Notify }) {
@@ -28,7 +30,7 @@ export function LibraryPage(props: { notify: Notify }) {
   const [folderPath, setFolderPath] = createSignal("");
   const [recursive, setRecursive] = createSignal(true);
   const [isImporting, setIsImporting] = createSignal(false);
-  const [documents, { refetch, mutate }] = createResource(
+  const [documents, { mutate }] = createResource(
     () => query(),
     async (q) => {
       try {
@@ -48,32 +50,80 @@ export function LibraryPage(props: { notify: Notify }) {
     }
   });
   const items = createMemo(() => documents() ?? []);
-  let refreshTimer: number | undefined;
+  const pendingDocumentIds = new Set<string>();
+  let patchTimer: number | undefined;
 
-  const scheduleRefresh = () => {
-    window.clearTimeout(refreshTimer);
-    refreshTimer = window.setTimeout(() => {
-      refetch();
-      refetchFolders();
-    }, 250);
+  const matchesQuery = (document: DocumentCard) => {
+    const value = query().trim().toLocaleLowerCase();
+    if (!value) return true;
+    return [
+      document.title,
+      document.file_name,
+      document.path,
+      document.doi,
+      document.arxiv_id,
+      ...(document.authors ?? []),
+    ].some((field) => field?.toLocaleLowerCase().includes(value));
+  };
+
+  const patchDocument = (nextDocument: DocumentCard) => {
+    mutate((current) => {
+      const currentDocuments = current ?? [];
+      const index = currentDocuments.findIndex((item) => item.id === nextDocument.id);
+      if (!matchesQuery(nextDocument)) {
+        return index === -1
+          ? currentDocuments
+          : currentDocuments.filter((item) => item.id !== nextDocument.id);
+      }
+      if (index === -1) return [...currentDocuments, nextDocument];
+      return currentDocuments.map((item) =>
+        item.id === nextDocument.id ? nextDocument : item,
+      );
+    });
+  };
+
+  const flushDocumentPatches = async () => {
+    const ids = [...pendingDocumentIds];
+    pendingDocumentIds.clear();
+    await Promise.all(
+      ids.map(async (id) => {
+        try {
+          patchDocument(await api.document(id));
+        } catch {
+          // Ignore stale events for documents that were deleted or are not readable yet.
+        }
+      }),
+    );
+  };
+
+  const scheduleDocumentPatch = (documentId: string) => {
+    pendingDocumentIds.add(documentId);
+    window.clearTimeout(patchTimer);
+    patchTimer = window.setTimeout(() => {
+      void flushDocumentPatches();
+    }, 150);
   };
 
   onMount(() => {
     const onAppEvent = (event: Event) => {
       const detail = (event as CustomEvent<LibraryRefreshEvent>).detail;
+      if (detail?.type === "folder_scan_completed") {
+        refetchFolders();
+        return;
+      }
       if (
-        detail?.type === "document_discovered" ||
-        detail?.type === "document_ready" ||
-        detail?.type === "folder_scan_completed"
+        (detail?.type === "document_discovered" ||
+          detail?.type === "document_ready") &&
+        detail.document_id
       ) {
-        scheduleRefresh();
+        scheduleDocumentPatch(detail.document_id);
       }
     };
 
     window.addEventListener("papercache:event", onAppEvent);
     onCleanup(() => {
       window.removeEventListener("papercache:event", onAppEvent);
-      window.clearTimeout(refreshTimer);
+      window.clearTimeout(patchTimer);
     });
   });
 
@@ -87,7 +137,6 @@ export function LibraryPage(props: { notify: Notify }) {
       setFolderPath("");
       props.notify("Folder scan queued", "success");
       refetchFolders();
-      refetch();
     } catch (error) {
       console.error("Folder import failed", {
         path,
@@ -107,7 +156,13 @@ export function LibraryPage(props: { notify: Notify }) {
       await api.disableFolder(folderId);
       props.notify("Folder import disabled", "success");
       refetchFolders();
-      refetch();
+      mutate((current) =>
+        (current ?? []).map((document) =>
+          document.folder_id === folderId
+            ? { ...document, status: "missing" }
+            : document,
+        ),
+      );
     } catch {
       props.notify("Folder disable failed", "error");
     }
@@ -130,7 +185,6 @@ export function LibraryPage(props: { notify: Notify }) {
     try {
       await api.updateClassification(document.id, nextClassification);
       props.notify("Classification updated", "success");
-      refetch();
     } catch {
       props.notify("Classification update failed", "error");
     }

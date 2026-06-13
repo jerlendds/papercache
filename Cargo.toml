@@ -9,6 +9,7 @@ anyhow = "1.0.102"
 async-stream = "0.3.6"
 blake3 = "1.8.5"
 chrono = "0.4.45"
+image = { version = "0.25.10", default-features = false, features = ["jpeg"] }
 lancedb = "0.30.0"
 lopdf = "0.41.0"
 notify = "8.2.0"

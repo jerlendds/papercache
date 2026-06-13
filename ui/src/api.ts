@@ -151,6 +151,10 @@ export const api = {
     return requestJson<DocumentCard[]>(`/api/documents?${params}`);
   },
 
+  async document(documentId: string) {
+    return requestJson<DocumentCard>(`/api/documents/${documentId}`);
+  },
+
   async updateClassification(documentId: string, classification: Classification) {
     return requestJson<{ status: string }>(`/api/documents/${documentId}/classification`, withAuth({
       method: 'PUT',

@@ -11,6 +11,10 @@ import type { DocumentCard, ViewMode } from "../api";
 import { EmptyState } from "./EmptyState";
 import { DocumentCardView } from "./DocumentCardView";
 
+const GRID_CARD_HEIGHT = 386;
+const LIST_CARD_HEIGHT = 136;
+const ROW_GAP = 18;
+
 export function VirtualDocumentList(props: {
   mode: ViewMode;
   documents: DocumentCard[];
@@ -19,9 +23,19 @@ export function VirtualDocumentList(props: {
 }) {
   const [scrollTop, setScrollTop] = createSignal(0);
   const [viewportHeight, setViewportHeight] = createSignal(720);
+  const [viewportWidth, setViewportWidth] = createSignal(1200);
   let viewport!: HTMLDivElement;
-  const rowHeight = () => (props.mode === "grid" ? 350 : 156);
-  const columns = () => (props.mode === "grid" ? 3 : 1);
+  const rowHeight = () =>
+    (props.mode === "grid" ? GRID_CARD_HEIGHT : LIST_CARD_HEIGHT) + ROW_GAP;
+  const columns = createMemo(() => {
+    if (props.mode === "list") return 1;
+    const contentWidth = Math.max(1, viewportWidth() - 56);
+    const minCardWidth = 260;
+    return Math.max(
+      1,
+      Math.min(4, Math.floor((contentWidth + ROW_GAP) / (minCardWidth + ROW_GAP))),
+    );
+  });
   const rowCount = createMemo(() =>
     Math.ceil(props.documents.length / columns()),
   );
@@ -42,7 +56,10 @@ export function VirtualDocumentList(props: {
 
   onMount(() => {
     if (!viewport) return;
-    const measure = () => setViewportHeight(Math.max(1, viewport.clientHeight || 720));
+    const measure = () => {
+      setViewportHeight(Math.max(1, viewport.clientHeight || 720));
+      setViewportWidth(Math.max(1, viewport.clientWidth || 1200));
+    };
     measure();
     if (typeof ResizeObserver === "undefined") {
       window.addEventListener("resize", measure);
@@ -72,7 +89,13 @@ export function VirtualDocumentList(props: {
         >
           <div
             class={`document-collection ${props.mode}`}
-            style={{ transform: `translateY(${startRow() * rowHeight()}px)` }}
+            style={{
+              "grid-template-columns":
+                props.mode === "grid"
+                  ? `repeat(${columns()}, minmax(260px, 1fr))`
+                  : "1fr",
+              transform: `translateY(${startRow() * rowHeight()}px)`,
+            }}
           >
             <For each={visible()}>
               {(document) => (

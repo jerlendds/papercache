@@ -35,13 +35,15 @@
 }
 
 .paper-card.grid {
-  min-height: 328px;
+  height: 386px;
+  overflow: hidden;
 }
 
 .paper-card.list {
   display: grid;
+  height: 136px;
   grid-template-columns: minmax(0, 1fr) auto;
-  min-height: 136px;
+  overflow: hidden;
 }
 
 .paper-card-actions {
@@ -86,6 +88,10 @@
   grid-template-columns: 82px minmax(0, 1fr);
 }
 
+.paper-card.grid .paper-main {
+  min-height: 174px;
+}
+
 .cover {
   align-items: center;
   aspect-ratio: 3 / 4;
@@ -115,6 +121,17 @@
 
 .paper-body {
   min-width: 0;
+}
+
+.paper-body h2 {
+  display: -webkit-box;
+  overflow: hidden;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 4;
+}
+
+.paper-card.list .paper-body h2 {
+  -webkit-line-clamp: 2;
 }
 
 .paper-file-row,

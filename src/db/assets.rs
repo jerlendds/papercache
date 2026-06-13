@@ -18,12 +18,12 @@ impl AssetStore {
 
     pub fn cover_path(&self, document_id: &str, hash: &str) -> PathBuf {
         let prefix = &hash[..hash.len().min(12)];
-        self.covers_dir.join(format!("{document_id}-{prefix}.webp"))
+        self.covers_dir.join(format!("{document_id}-{prefix}.jpg"))
     }
 
     pub fn relative_cover_path(document_id: &str, hash: &str) -> String {
         let prefix = &hash[..hash.len().min(12)];
-        format!("covers/{document_id}-{prefix}.webp")
+        format!("covers/{document_id}-{prefix}.jpg")
     }
 
     pub fn resolve_relative(&self, relative: &str) -> Option<PathBuf> {
@@ -40,19 +40,23 @@ pub async fn upsert_cover_asset(
     document_id: &str,
     relative_path: &str,
     sha256: Option<&str>,
+    width: Option<i64>,
+    height: Option<i64>,
 ) -> anyhow::Result<String> {
     let id = Uuid::new_v4().to_string();
     let now = now_rfc3339();
     sqlx::query(
         r#"
-        INSERT INTO assets (id, document_id, kind, mime, path, sha256, created_at)
-        VALUES (?, ?, 'cover', 'image/webp', ?, ?, ?)
+        INSERT INTO assets (id, document_id, kind, mime, path, sha256, width, height, created_at)
+        VALUES (?, ?, 'cover', 'image/jpeg', ?, ?, ?, ?, ?)
         "#,
     )
     .bind(&id)
     .bind(document_id)
     .bind(relative_path)
     .bind(sha256)
+    .bind(width)
+    .bind(height)
     .bind(&now)
     .execute(db)
     .await?;

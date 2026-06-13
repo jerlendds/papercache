@@ -4,8 +4,13 @@ use sqlx::{QueryBuilder, Row, Sqlite};
 
 use crate::{
     app_state::AppState,
-    db::{documents::DocumentCard, models::Document},
+    db::{
+        assets::{AssetStore, upsert_cover_asset},
+        documents::DocumentCard,
+        models::Document,
+    },
     error::{AppError, AppResult},
+    ingest::thumbnails,
     web::require_write_auth,
 };
 
@@ -32,7 +37,7 @@ struct ListQuery {
 }
 
 async fn list(state: web::Data<AppState>, query: web::Query<ListQuery>) -> AppResult<HttpResponse> {
-    let limit = query.limit.unwrap_or(50).clamp(1, 200);
+    let limit = query.limit.unwrap_or(50).clamp(1, 500);
     let offset = query.offset.unwrap_or(0).max(0);
     let mut builder: QueryBuilder<Sqlite> =
         QueryBuilder::new("SELECT * FROM documents WHERE 1 = 1");
@@ -60,7 +65,7 @@ async fn list(state: web::Data<AppState>, query: web::Query<ListQuery>) -> AppRe
             .push(")");
     }
     builder
-        .push(" ORDER BY updated_at DESC LIMIT ")
+        .push(" ORDER BY created_at ASC, id ASC LIMIT ")
         .push_bind(limit)
         .push(" OFFSET ")
         .push_bind(offset);
@@ -135,6 +140,12 @@ async fn delete_classification(
 }
 
 async fn cover(state: web::Data<AppState>, id: web::Path<String>) -> AppResult<HttpResponse> {
+    let doc = sqlx::query_as::<_, Document>("SELECT * FROM documents WHERE id = ?")
+        .bind(id.as_str())
+        .fetch_optional(&state.db)
+        .await?
+        .ok_or(AppError::NotFound)?;
+
     let row = sqlx::query(
         r#"
         SELECT a.path, a.mime
@@ -143,20 +154,60 @@ async fn cover(state: web::Data<AppState>, id: web::Path<String>) -> AppResult<H
         WHERE d.id = ? AND a.kind = 'cover'
         "#,
     )
-    .bind(id.as_str())
+    .bind(&doc.id)
     .fetch_optional(&state.db)
-    .await?
-    .ok_or(AppError::NotFound)?;
-    let relative: String = row.get("path");
-    let mime: String = row.get("mime");
-    let path = state
-        .asset_store
-        .resolve_relative(&relative)
-        .ok_or(AppError::NotFound)?;
+    .await?;
+
+    let existing = row.and_then(|row| {
+        let relative: String = row.get("path");
+        let mime: String = row.get("mime");
+        let path = state.asset_store.resolve_relative(&relative)?;
+        Some((path, mime))
+    });
+    let (path, mime) = match existing {
+        Some((path, mime)) if mime == "image/jpeg" && path.exists() => (path, mime),
+        _ => ensure_cover_asset(&state, &doc).await?,
+    };
     let bytes = tokio::fs::read(path).await?;
     Ok(HttpResponse::Ok()
         .insert_header((header::CONTENT_TYPE, mime))
         .body(bytes))
+}
+
+async fn ensure_cover_asset(
+    state: &web::Data<AppState>,
+    doc: &Document,
+) -> AppResult<(std::path::PathBuf, String)> {
+    let cover_key = doc.sha256.as_deref().unwrap_or(&doc.id);
+    let cover_path = state.asset_store.cover_path(&doc.id, cover_key);
+    let relative_cover = AssetStore::relative_cover_path(&doc.id, cover_key);
+    let source_path = std::path::PathBuf::from(&doc.path);
+    let cover = tokio::task::spawn_blocking({
+        let source_path = source_path.clone();
+        let cover_path = cover_path.clone();
+        move || {
+            if source_path.exists() {
+                thumbnails::write_pdf_cover(&source_path, &cover_path)
+                    .or_else(|_| thumbnails::write_placeholder_cover(&cover_path))
+            } else {
+                thumbnails::write_placeholder_cover(&cover_path)
+            }
+        }
+    })
+    .await
+    .map_err(|error| AppError::from(anyhow::anyhow!(error)))??;
+
+    upsert_cover_asset(
+        &state.db,
+        &doc.id,
+        &relative_cover,
+        doc.sha256.as_deref(),
+        Some(cover.width),
+        Some(cover.height),
+    )
+    .await?;
+
+    Ok((cover_path, "image/jpeg".to_string()))
 }
 
 async fn file(state: web::Data<AppState>, id: web::Path<String>) -> AppResult<HttpResponse> {

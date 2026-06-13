@@ -37,6 +37,18 @@ describe('<App />', () => {
             ],
           });
         }
+        if (url === '/api/documents/doc-2') {
+          return jsonResponse({
+            id: 'doc-2',
+            path: '/Users/example/Papers/graph.pdf',
+            title: 'Graph Paper',
+            file_name: 'graph.pdf',
+            status: 'ready',
+            page_count: 8,
+            classification: { topics: ['graph'] },
+            cover_url: '',
+          });
+        }
         if (String(url).startsWith('/api/documents') && init?.method !== 'PUT') {
           return jsonResponse([
             {
@@ -203,7 +215,7 @@ describe('<App />', () => {
     expect(screen.queryByText('Scanning folder for PDFs...')).not.toBeInTheDocument();
   });
 
-  test('library refetches when import events arrive', async () => {
+  test('library patches changed documents when import events arrive', async () => {
     render(() => <App />);
     const source = MockEventSource.instances[0];
 
@@ -227,9 +239,22 @@ describe('<App />', () => {
     );
 
     await waitFor(() =>
-      expect(
-        vi.mocked(fetch).mock.calls.filter(([url]) => String(url).startsWith('/api/documents')).length,
-      ).toBeGreaterThan(before),
+      expect(fetch).toHaveBeenCalledWith(
+        '/api/documents/doc-2',
+        expect.objectContaining({
+          headers: expect.objectContaining({
+            'Content-Type': 'application/json',
+          }),
+        }),
+      ),
+    );
+    expect(
+      vi.mocked(fetch).mock.calls.filter(([url]) =>
+        String(url).startsWith('/api/documents?'),
+      ).length,
+    ).toBe(before);
+    await waitFor(() =>
+      expect(document.body).toHaveTextContent('Graph Paper'),
     );
   });
 });

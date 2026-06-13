@@ -119,13 +119,31 @@ pub async fn ingest_pdf(
 
     let cover_path = asset_store.cover_path(document_id, &source_hash);
     let relative_cover = AssetStore::relative_cover_path(document_id, &source_hash);
-    let title_for_cover = title.as_deref().unwrap_or(&document.file_name).to_string();
-    let _ = tokio::task::spawn_blocking(move || {
-        thumbnails::write_placeholder_cover(&cover_path, &title_for_cover)
+    let cover = tokio::task::spawn_blocking({
+        let path = path.clone();
+        let cover_path = cover_path.clone();
+        move || match thumbnails::write_pdf_cover(&path, &cover_path) {
+            Ok(cover) => Ok(cover),
+            Err(error) => {
+                tracing::warn!(
+                    path = %path.display(),
+                    error = %error,
+                    "PDF cover rendering failed; writing placeholder cover"
+                );
+                thumbnails::write_placeholder_cover(&cover_path)
+            }
+        }
     })
+    .await??;
+    let cover_asset_id = upsert_cover_asset(
+        db,
+        document_id,
+        &relative_cover,
+        Some(&source_hash),
+        Some(cover.width),
+        Some(cover.height),
+    )
     .await?;
-    let cover_asset_id =
-        upsert_cover_asset(db, document_id, &relative_cover, Some(&source_hash)).await?;
 
     let now = now_rfc3339();
     sqlx::query(
@@ -153,7 +171,7 @@ pub async fn ingest_pdf(
         INSERT INTO document_processing_state
           (document_id, source_file_size, source_modified_at, source_sha256, text_extraction_version,
            thumbnail_version, classifier_version, chunker_version, updated_at)
-        VALUES (?, ?, ?, ?, ?, 'placeholder-v1', 'rules-v1', 'chunker-v1', ?)
+        VALUES (?, ?, ?, ?, ?, ?, 'rules-v1', 'chunker-v1', ?)
         ON CONFLICT(document_id) DO UPDATE SET
           source_file_size = excluded.source_file_size,
           source_modified_at = excluded.source_modified_at,
@@ -171,6 +189,7 @@ pub async fn ingest_pdf(
     .bind(document.modified_at)
     .bind(&source_hash)
     .bind(&extract.text_extraction_version)
+    .bind(cover.version)
     .bind(now)
     .execute(db)
     .await?;
