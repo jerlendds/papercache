@@ -138,7 +138,7 @@ export function LibraryPage(props: { notify: Notify }) {
   };
 
   return (
-    <section class="page">
+    <section class="page library-page">
       <PageHeader
         title="Library"
         subtitle="Indexed papers, metadata, and classifications."

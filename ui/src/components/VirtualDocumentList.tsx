@@ -1,10 +1,15 @@
-import { For, Show, createMemo, createSignal } from "solid-js";
+import {
+  For,
+  Show,
+  createMemo,
+  createSignal,
+  onCleanup,
+  onMount,
+} from "solid-js";
 
 import type { DocumentCard, ViewMode } from "../api";
 import { EmptyState } from "./EmptyState";
 import { DocumentCardView } from "./DocumentCardView";
-
-const VIEWPORT_HEIGHT = 620;
 
 export function VirtualDocumentList(props: {
   mode: ViewMode;
@@ -13,6 +18,8 @@ export function VirtualDocumentList(props: {
   onAddTopic: (document: DocumentCard, topic: string) => void;
 }) {
   const [scrollTop, setScrollTop] = createSignal(0);
+  const [viewportHeight, setViewportHeight] = createSignal(720);
+  let viewport!: HTMLDivElement;
   const rowHeight = () => (props.mode === "grid" ? 248 : 132);
   const columns = () => (props.mode === "grid" ? 3 : 1);
   const rowCount = createMemo(() =>
@@ -22,7 +29,7 @@ export function VirtualDocumentList(props: {
     Math.max(0, Math.floor(scrollTop() / rowHeight()) - 2),
   );
   const visibleRows = createMemo(
-    () => Math.ceil(VIEWPORT_HEIGHT / rowHeight()) + 5,
+    () => Math.ceil(viewportHeight() / rowHeight()) + 5,
   );
   const visible = createMemo(() => {
     const start = startRow() * columns();
@@ -33,14 +40,28 @@ export function VirtualDocumentList(props: {
     return props.documents.slice(start, end);
   });
 
+  onMount(() => {
+    if (!viewport) return;
+    const measure = () => setViewportHeight(Math.max(1, viewport.clientHeight || 720));
+    measure();
+    if (typeof ResizeObserver === "undefined") {
+      window.addEventListener("resize", measure);
+      onCleanup(() => window.removeEventListener("resize", measure));
+      return;
+    }
+    const observer = new ResizeObserver(measure);
+    observer.observe(viewport);
+    onCleanup(() => observer.disconnect());
+  });
+
   return (
     <Show
       when={props.documents.length > 0}
       fallback={<EmptyState label={props.emptyLabel} />}
     >
       <div
+        ref={viewport}
         class="virtual-viewport"
-        style={{ height: `${VIEWPORT_HEIGHT}px` }}
         onScroll={(event) => setScrollTop(event.currentTarget.scrollTop)}
       >
         <div
