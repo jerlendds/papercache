@@ -29,6 +29,9 @@ export type DocumentCard = {
   classification?: Classification | null;
   cover_url: string;
   file_url?: string;
+  is_favorite?: boolean;
+  is_bookmarked?: boolean;
+  is_pinned?: boolean;
   created_at?: string;
   updated_at?: string;
 };
@@ -65,6 +68,10 @@ export type ImportedFolder = {
   enabled: boolean;
   last_scan_at?: string | null;
   document_count: number;
+};
+
+export type DocumentCount = {
+  total: number;
 };
 
 export class ApiError extends Error {
@@ -151,8 +158,22 @@ export const api = {
     return requestJson<DocumentCard[]>(`/api/documents?${params}`);
   },
 
+  async documentCount() {
+    return requestJson<DocumentCount>('/api/documents/count');
+  },
+
   async document(documentId: string) {
     return requestJson<DocumentCard>(`/api/documents/${documentId}`);
+  },
+
+  async updateDocumentFlags(
+    documentId: string,
+    flags: Partial<Pick<DocumentCard, 'is_favorite' | 'is_bookmarked' | 'is_pinned'>>,
+  ) {
+    return requestJson<DocumentCard>(`/api/documents/${documentId}/flags`, withAuth({
+      method: 'PATCH',
+      body: JSON.stringify(flags),
+    }));
   },
 
   async updateClassification(documentId: string, classification: Classification) {

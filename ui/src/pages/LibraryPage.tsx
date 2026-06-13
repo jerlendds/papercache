@@ -49,7 +49,17 @@ export function LibraryPage(props: { notify: Notify }) {
       return [];
     }
   });
+  const [documentCount, { refetch: refetchDocumentCount }] =
+    createResource(async () => {
+      try {
+        return await api.documentCount();
+      } catch {
+        props.notify("Paper count failed to load", "error");
+        return { total: 0 };
+      }
+    });
   const items = createMemo(() => documents() ?? []);
+  const totalPapers = createMemo(() => documentCount()?.total ?? items().length);
   const pendingDocumentIds = new Set<string>();
   let patchTimer: number | undefined;
 
@@ -109,6 +119,7 @@ export function LibraryPage(props: { notify: Notify }) {
       const detail = (event as CustomEvent<LibraryRefreshEvent>).detail;
       if (detail?.type === "folder_scan_completed") {
         refetchFolders();
+        refetchDocumentCount();
         return;
       }
       if (
@@ -116,6 +127,7 @@ export function LibraryPage(props: { notify: Notify }) {
           detail?.type === "document_ready") &&
         detail.document_id
       ) {
+        if (detail.type === "document_discovered") refetchDocumentCount();
         scheduleDocumentPatch(detail.document_id);
       }
     };
@@ -137,6 +149,7 @@ export function LibraryPage(props: { notify: Notify }) {
       setFolderPath("");
       props.notify("Folder scan queued", "success");
       refetchFolders();
+      refetchDocumentCount();
     } catch (error) {
       console.error("Folder import failed", {
         path,
@@ -156,6 +169,7 @@ export function LibraryPage(props: { notify: Notify }) {
       await api.disableFolder(folderId);
       props.notify("Folder import disabled", "success");
       refetchFolders();
+      refetchDocumentCount();
       mutate((current) =>
         (current ?? []).map((document) =>
           document.folder_id === folderId
@@ -187,6 +201,31 @@ export function LibraryPage(props: { notify: Notify }) {
       props.notify("Classification updated", "success");
     } catch {
       props.notify("Classification update failed", "error");
+    }
+  };
+
+  const toggleDocumentFlag = async (
+    document: DocumentCard,
+    flag: "is_favorite" | "is_bookmarked" | "is_pinned",
+  ) => {
+    const nextValue = !Boolean(document[flag]);
+    mutate((current) =>
+      (current ?? []).map((item) =>
+        item.id === document.id ? { ...item, [flag]: nextValue } : item,
+      ),
+    );
+    try {
+      const nextDocument = await api.updateDocumentFlags(document.id, {
+        [flag]: nextValue,
+      });
+      patchDocument(nextDocument);
+    } catch {
+      mutate((current) =>
+        (current ?? []).map((item) =>
+          item.id === document.id ? { ...item, [flag]: document[flag] } : item,
+        ),
+      );
+      props.notify("Document flag update failed", "error");
     }
   };
 
@@ -234,7 +273,7 @@ export function LibraryPage(props: { notify: Notify }) {
       <div class="library-title-row">
         <div class="library-heading">
           <h1>All Papers</h1>
-          <span>{items().length.toLocaleString()} papers</span>
+          <span>{totalPapers().toLocaleString()} papers</span>
         </div>
         <div class="library-view-row">
           <ViewToggle mode={mode()} onMode={setMode} />
@@ -304,6 +343,7 @@ export function LibraryPage(props: { notify: Notify }) {
         mode={mode()}
         documents={items()}
         onAddTopic={addTopic}
+        onToggleFlag={toggleDocumentFlag}
         emptyLabel={
           documents.loading
             ? "Loading indexed papers..."

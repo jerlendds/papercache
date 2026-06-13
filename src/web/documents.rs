@@ -17,7 +17,9 @@ use crate::{
 pub fn routes() -> Scope {
     web::scope("/documents")
         .route("", web::get().to(list))
+        .route("/count", web::get().to(count))
         .route("/{id}", web::get().to(get))
+        .route("/{id}/flags", web::patch().to(patch_flags))
         .route("/{id}/classification", web::put().to(put_classification))
         .route(
             "/{id}/classification",
@@ -78,35 +80,66 @@ async fn list(state: web::Data<AppState>, query: web::Query<ListQuery>) -> AppRe
     Ok(HttpResponse::Ok().json(cards))
 }
 
+async fn count(state: web::Data<AppState>) -> AppResult<HttpResponse> {
+    let total = sqlx::query_scalar::<_, i64>(
+        r#"
+        SELECT COUNT(*)
+        FROM documents
+        WHERE status IN ('discovered', 'processing', 'ready')
+        "#,
+    )
+    .fetch_one(&state.db)
+    .await?;
+    Ok(HttpResponse::Ok().json(serde_json::json!({ "total": total })))
+}
+
 async fn get(state: web::Data<AppState>, id: web::Path<String>) -> AppResult<HttpResponse> {
     let doc = sqlx::query_as::<_, Document>("SELECT * FROM documents WHERE id = ?")
         .bind(id.as_str())
         .fetch_optional(&state.db)
         .await?
         .ok_or(AppError::NotFound)?;
-    Ok(HttpResponse::Ok().json(serde_json::json!({
-        "id": doc.id,
-        "folder_id": doc.folder_id,
-        "path": doc.path,
-        "canonical_path": doc.canonical_path,
-        "file_name": doc.file_name,
-        "file_size": doc.file_size,
-        "modified_at": doc.modified_at,
-        "sha256": doc.sha256,
-        "title": doc.title,
-        "authors": parse_authors(doc.authors_json.as_deref()),
-        "year": doc.year,
-        "doi": doc.doi,
-        "arxiv_id": doc.arxiv_id,
-        "page_count": doc.page_count,
-        "status": doc.status,
-        "error": doc.error,
-        "classification": doc.classification_json.as_deref().and_then(|v| serde_json::from_str::<serde_json::Value>(v).ok()).unwrap_or_else(|| serde_json::json!(null)),
-        "cover_url": format!("/api/documents/{}/cover", doc.id),
-        "file_url": format!("/api/documents/{}/file", doc.id),
-        "created_at": doc.created_at,
-        "updated_at": doc.updated_at,
-    })))
+    Ok(HttpResponse::Ok().json(document_card(doc)))
+}
+
+#[derive(Debug, Deserialize)]
+struct FlagPatch {
+    is_favorite: Option<bool>,
+    is_bookmarked: Option<bool>,
+    is_pinned: Option<bool>,
+}
+
+async fn patch_flags(
+    req: HttpRequest,
+    state: web::Data<AppState>,
+    id: web::Path<String>,
+    body: web::Json<FlagPatch>,
+) -> AppResult<HttpResponse> {
+    require_write_auth(&req, &state)?;
+    sqlx::query(
+        r#"
+        UPDATE documents
+        SET is_favorite = COALESCE(?, is_favorite),
+            is_bookmarked = COALESCE(?, is_bookmarked),
+            is_pinned = COALESCE(?, is_pinned),
+            updated_at = ?
+        WHERE id = ?
+        "#,
+    )
+    .bind(body.is_favorite.map(i64::from))
+    .bind(body.is_bookmarked.map(i64::from))
+    .bind(body.is_pinned.map(i64::from))
+    .bind(crate::util::time::now_rfc3339())
+    .bind(id.as_str())
+    .execute(&state.db)
+    .await?;
+
+    let doc = sqlx::query_as::<_, Document>("SELECT * FROM documents WHERE id = ?")
+        .bind(id.as_str())
+        .fetch_optional(&state.db)
+        .await?
+        .ok_or(AppError::NotFound)?;
+    Ok(HttpResponse::Ok().json(document_card(doc)))
 }
 
 async fn put_classification(
@@ -255,6 +288,9 @@ fn document_card(doc: Document) -> DocumentCard {
         status: doc.status,
         error: doc.error,
         page_count: doc.page_count,
+        is_favorite: doc.is_favorite != 0,
+        is_bookmarked: doc.is_bookmarked != 0,
+        is_pinned: doc.is_pinned != 0,
         created_at: doc.created_at,
         updated_at: doc.updated_at,
     }

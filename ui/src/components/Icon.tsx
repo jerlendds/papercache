@@ -66,6 +66,9 @@ export function Icon(props: { name: string }) {
           <path d="M10 4v6l-2 3h8l-2-3V4" />
           <path d="M12 13v7" />
         </Match>
+        <Match when={props.name === 'bookmark'}>
+          <path d="M7 4h10v16l-5-3-5 3z" />
+        </Match>
         <Match when={props.name === 'more'}>
           <circle cx="12" cy="5" r="1" />
           <circle cx="12" cy="12" r="1" />

@@ -91,6 +91,9 @@ pub struct Document {
     pub error: Option<String>,
     pub classification_json: Option<String>,
     pub cover_asset_id: Option<String>,
+    pub is_favorite: i64,
+    pub is_bookmarked: i64,
+    pub is_pinned: i64,
     pub created_at: String,
     pub updated_at: String,
 }

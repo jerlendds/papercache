@@ -171,6 +171,9 @@ pub struct DocumentCard {
     pub classification: Option<serde_json::Value>,
     pub cover_url: String,
     pub file_url: String,
+    pub is_favorite: bool,
+    pub is_bookmarked: bool,
+    pub is_pinned: bool,
     pub created_at: String,
     pub updated_at: String,
 }

@@ -12,7 +12,7 @@ import { EmptyState } from "./EmptyState";
 import { DocumentCardView } from "./DocumentCardView";
 
 const GRID_CARD_HEIGHT = 386;
-const LIST_CARD_HEIGHT = 136;
+const LIST_CARD_HEIGHT = 188;
 const ROW_GAP = 18;
 
 export function VirtualDocumentList(props: {
@@ -20,6 +20,10 @@ export function VirtualDocumentList(props: {
   documents: DocumentCard[];
   emptyLabel: string;
   onAddTopic: (document: DocumentCard, topic: string) => void;
+  onToggleFlag?: (
+    document: DocumentCard,
+    flag: "is_favorite" | "is_bookmarked" | "is_pinned",
+  ) => void;
 }) {
   const [scrollTop, setScrollTop] = createSignal(0);
   const [viewportHeight, setViewportHeight] = createSignal(720);
@@ -103,6 +107,7 @@ export function VirtualDocumentList(props: {
                   document={document}
                   mode={props.mode}
                   onAddTopic={props.onAddTopic}
+                  onToggleFlag={props.onToggleFlag}
                 />
               )}
             </For>

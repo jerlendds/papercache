@@ -37,6 +37,9 @@ describe('<App />', () => {
             ],
           });
         }
+        if (url === '/api/documents/count') {
+          return jsonResponse({ total: 1 });
+        }
         if (url === '/api/documents/doc-2') {
           return jsonResponse({
             id: 'doc-2',
@@ -47,6 +50,21 @@ describe('<App />', () => {
             page_count: 8,
             classification: { topics: ['graph'] },
             cover_url: '',
+          });
+        }
+        if (url === '/api/documents/doc-1/flags' && init?.method === 'PATCH') {
+          return jsonResponse({
+            id: 'doc-1',
+            path: '/Users/example/Papers/retrieval.pdf',
+            title: 'Retrieval Paper',
+            file_name: 'retrieval.pdf',
+            status: 'ready',
+            page_count: 12,
+            classification: { topics: ['retrieval'] },
+            cover_url: '',
+            is_favorite: true,
+            is_bookmarked: false,
+            is_pinned: false,
           });
         }
         if (String(url).startsWith('/api/documents') && init?.method !== 'PUT') {
@@ -60,6 +78,9 @@ describe('<App />', () => {
               page_count: 12,
               classification: { topics: ['retrieval'] },
               cover_url: '',
+              is_favorite: false,
+              is_bookmarked: false,
+              is_pinned: false,
             },
           ]);
         }
@@ -144,6 +165,32 @@ describe('<App />', () => {
     await waitFor(() => expect(screen.getByText('Classification updated')).toBeInTheDocument());
   });
 
+  test('library toggles document flags', async () => {
+    window.localStorage.setItem('papercache.authToken', 'test-token');
+    const screen = render(() => <App />);
+
+    await waitFor(() => expect(screen.getByText('Retrieval Paper')).toBeInTheDocument());
+    fireEvent.click(screen.getByLabelText('Favorite retrieval.pdf'));
+
+    await waitFor(() =>
+      expect(fetch).toHaveBeenCalledWith(
+        '/api/documents/doc-1/flags',
+        expect.objectContaining({
+          method: 'PATCH',
+          headers: expect.objectContaining({
+            Authorization: 'Bearer test-token',
+            'Content-Type': 'application/json',
+          }),
+          body: JSON.stringify({ is_favorite: true }),
+        }),
+      ),
+    );
+    expect(screen.getByLabelText('Remove favorite from retrieval.pdf')).toHaveAttribute(
+      'aria-pressed',
+      'true',
+    );
+  });
+
   test('library queues folder imports', async () => {
     window.localStorage.setItem('papercache.authToken', 'test-token');
     const screen = render(() => <App />);
@@ -224,8 +271,8 @@ describe('<App />', () => {
         vi.mocked(fetch).mock.calls.filter(([url]) => String(url).startsWith('/api/documents')).length,
       ).toBeGreaterThan(0),
     );
-    const before = vi.mocked(fetch).mock.calls.filter(([url]) =>
-      String(url).startsWith('/api/documents'),
+    const beforeListFetches = vi.mocked(fetch).mock.calls.filter(([url]) =>
+      String(url).startsWith('/api/documents?'),
     ).length;
 
     source.onmessage?.(
@@ -252,7 +299,7 @@ describe('<App />', () => {
       vi.mocked(fetch).mock.calls.filter(([url]) =>
         String(url).startsWith('/api/documents?'),
       ).length,
-    ).toBe(before);
+    ).toBe(beforeListFetches);
     await waitFor(() =>
       expect(document.body).toHaveTextContent('Graph Paper'),
     );

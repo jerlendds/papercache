@@ -8,6 +8,10 @@ export function DocumentCardView(props: {
   document: DocumentCard;
   mode: ViewMode;
   onAddTopic?: (document: DocumentCard, topic: string) => void;
+  onToggleFlag?: (
+    document: DocumentCard,
+    flag: "is_favorite" | "is_bookmarked" | "is_pinned",
+  ) => void;
 }) {
   let topicInput!: HTMLInputElement;
   const topics = () => props.document.classification?.topics ?? [];
@@ -23,9 +27,33 @@ export function DocumentCardView(props: {
   return (
     <article class={`paper-card ${props.mode}`}>
       <div class="paper-card-actions">
-        <button type="button" aria-label={`Select ${props.document.file_name}`} />
-        <Icon name="pin" />
-        <Icon name="star" />
+        <button
+          type="button"
+          classList={{ active: Boolean(props.document.is_bookmarked) }}
+          aria-label={`${props.document.is_bookmarked ? "Remove bookmark from" : "Bookmark"} ${props.document.file_name}`}
+          aria-pressed={Boolean(props.document.is_bookmarked)}
+          onClick={() => props.onToggleFlag?.(props.document, "is_bookmarked")}
+        >
+          <Icon name="bookmark" />
+        </button>
+        <button
+          type="button"
+          classList={{ active: Boolean(props.document.is_pinned) }}
+          aria-label={`${props.document.is_pinned ? "Unpin" : "Pin"} ${props.document.file_name}`}
+          aria-pressed={Boolean(props.document.is_pinned)}
+          onClick={() => props.onToggleFlag?.(props.document, "is_pinned")}
+        >
+          <Icon name="pin" />
+        </button>
+        <button
+          type="button"
+          classList={{ active: Boolean(props.document.is_favorite) }}
+          aria-label={`${props.document.is_favorite ? "Remove favorite from" : "Favorite"} ${props.document.file_name}`}
+          aria-pressed={Boolean(props.document.is_favorite)}
+          onClick={() => props.onToggleFlag?.(props.document, "is_favorite")}
+        >
+          <Icon name="star" />
+        </button>
       </div>
       <div class="paper-main">
         <div class="cover" aria-label="PDF cover">
