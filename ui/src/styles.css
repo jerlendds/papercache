@@ -1,4 +1,5 @@
 :root {
+  --sidebar-width: 62px;
   --paper: #f7f1db;
   --paper-soft: #fbf7e8;
   --paper-card: #fffbe9;
@@ -13,7 +14,13 @@
   color: var(--ink);
   background: var(--paper);
   font-family:
-    Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    Inter,
+    ui-sans-serif,
+    system-ui,
+    -apple-system,
+    BlinkMacSystemFont,
+    "Segoe UI",
+    sans-serif;
   font-synthesis: none;
   text-rendering: optimizeLegibility;
 }
@@ -23,12 +30,29 @@
 }
 
 body {
-  background:
-    radial-gradient(circle at 24px 24px, rgb(23 34 60 / 9%) 1.5px, transparent 1.6px) 0 0 / 24px 24px,
-    linear-gradient(to bottom, transparent 31px, var(--paper-line) 32px, transparent 33px) 0 7px / 100% 32px,
-    var(--paper);
+  background: var(--paper);
   margin: 0;
   min-width: 320px;
+}
+
+#root {
+  background:
+    linear-gradient(
+        to bottom,
+        transparent 31px,
+        var(--paper-line) 32px,
+        transparent 33px
+      )
+      0 7px / 100% 32px,
+    linear-gradient(
+      to right,
+      transparent calc(var(--sidebar-width) - 2px),
+      rgb(197 46 53 / 70%) calc(var(--sidebar-width) - 1px),
+      transparent var(--sidebar-width)
+    ),
+    var(--paper);
+  min-width: 320px;
+  min-height: 100vh;
 }
 
 button,
@@ -38,17 +62,13 @@ input {
 
 .app-shell {
   display: grid;
-  grid-template-columns: 62px minmax(0, 1fr);
+  grid-template-columns: var(--sidebar-width) minmax(0, 1fr);
   min-height: 100vh;
 }
 
 .sidebar {
   align-items: center;
-  background:
-    radial-gradient(circle at 14px 14px, rgb(23 34 60 / 10%) 1.2px, transparent 1.3px) 0 0 / 18px 18px,
-    #fdf9e9;
-  border-right: 2px solid rgb(23 34 60 / 76%);
-  box-shadow: 4px 0 0 rgb(23 34 60 / 8%);
+  background: transparent;
   display: flex;
   flex-direction: column;
   gap: 18px;
@@ -96,10 +116,25 @@ input {
   color: var(--ink-soft);
   cursor: pointer;
   display: flex;
-  height: 34px;
+  height: 40px;
   justify-content: center;
+  overflow: visible;
   position: relative;
-  width: 34px;
+  width: 40px;
+  z-index: 0;
+}
+
+.nav-button::before {
+  background: var(--red);
+  content: "";
+  inset: -4px;
+  -webkit-mask: url("./assets/ink-splatter.svg") center / contain no-repeat;
+  mask: url("./assets/ink-splatter.svg") center / contain no-repeat;
+  opacity: 0;
+  position: absolute;
+  transform: scale(0.89);
+  transform-origin: center;
+  z-index: 0;
 }
 
 .nav-button:hover {
@@ -108,19 +143,49 @@ input {
 }
 
 .nav-button.active {
-  background: var(--ink);
+  background: transparent;
+  color: var(--paper-card);
+}
+
+.nav-button.active::before {
+  animation: ink-splotch-in 240ms cubic-bezier(0.2, 0.9, 0.26, 1.2) both;
   box-shadow: 2px 3px 0 rgb(23 34 60 / 22%);
+}
+
+.nav-button.active:hover {
+  background: transparent;
   color: var(--paper-card);
 }
 
 .nav-button svg {
   fill: none;
   height: 18px;
+  position: relative;
   stroke: currentColor;
   stroke-linecap: round;
   stroke-linejoin: round;
   stroke-width: 2.1;
   width: 18px;
+  bottom: 2px;
+  left: -1px;
+  z-index: 1;
+}
+
+@keyframes ink-splotch-in {
+  from {
+    opacity: 0;
+    transform: scale(0.72);
+  }
+
+  70% {
+    opacity: 0.9;
+    transform: scale(1.04);
+  }
+
+  to {
+    opacity: 1;
+    transform: scale(1.05);
+  }
 }
 
 .tooltip {
@@ -178,11 +243,6 @@ input {
 }
 
 .page {
-  background:
-    radial-gradient(circle at 20px 20px, rgb(23 34 60 / 8%) 1.4px, transparent 1.5px) 0 0 / 22px 22px,
-    linear-gradient(to bottom, transparent 31px, rgb(59 143 179 / 22%) 32px, transparent 33px) 0 7px / 100% 32px,
-    linear-gradient(to right, transparent 104px, rgb(197 46 53 / 70%) 105px, transparent 106px),
-    var(--paper);
   min-height: 100vh;
   padding: 28px;
   position: relative;
@@ -597,7 +657,13 @@ h2 {
 
 .modal {
   background:
-    linear-gradient(to bottom, transparent 31px, rgb(59 143 179 / 16%) 32px, transparent 33px) 0 7px / 100% 32px,
+    linear-gradient(
+        to bottom,
+        transparent 31px,
+        rgb(59 143 179 / 16%) 32px,
+        transparent 33px
+      )
+      0 7px / 100% 32px,
     var(--paper-card);
   border: 2px solid var(--ink);
   border-radius: 8px;
@@ -750,7 +816,12 @@ h2 {
   align-items: center;
   aspect-ratio: 3 / 4;
   background:
-    radial-gradient(circle at 10px 10px, rgb(23 34 60 / 10%) 1.1px, transparent 1.2px) 0 0 / 14px 14px,
+    radial-gradient(
+        circle at 10px 10px,
+        rgb(23 34 60 / 10%) 1.1px,
+        transparent 1.2px
+      )
+      0 0 / 14px 14px,
     #efe7cf;
   border: 2px solid rgb(23 34 60 / 62%);
   border-radius: 6px;
@@ -961,11 +1032,11 @@ h2 {
 }
 
 .toast-stack {
+  bottom: 18px;
   display: grid;
   gap: 10px;
   position: fixed;
   right: 18px;
-  top: 18px;
   width: min(360px, calc(100vw - 36px));
   z-index: 50;
 }
@@ -1020,8 +1091,12 @@ h2 {
 }
 
 @media (max-width: 640px) {
+  :root {
+    --sidebar-width: 54px;
+  }
+
   .app-shell {
-    grid-template-columns: 54px minmax(0, 1fr);
+    grid-template-columns: var(--sidebar-width) minmax(0, 1fr);
   }
 
   .page {
