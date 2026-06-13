@@ -9,7 +9,7 @@ use crate::{
     config::WATCH_DEBOUNCE,
     db::{documents, folders, jobs::enqueue_job, models::JobKind},
     index::commands::IndexCommand,
-    util::fs::is_pdf,
+    util::fs::is_supported_document,
     web::events::AppEvent,
 };
 
@@ -59,7 +59,7 @@ async fn watch_once(
     while let Some(event) = raw_rx.recv().await {
         let event = event?;
         for path in event.paths {
-            if !is_pdf(&path) {
+            if !is_supported_document(&path) {
                 continue;
             }
             if matches!(event.kind, EventKind::Remove(_)) {

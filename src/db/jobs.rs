@@ -1,6 +1,6 @@
 use chrono::{Duration, Utc};
 use serde_json::Value;
-use sqlx::{Row, SqlitePool};
+use sqlx::{QueryBuilder, Sqlite, SqlitePool};
 use tokio::sync::mpsc;
 use uuid::Uuid;
 
@@ -18,69 +18,91 @@ pub async fn enqueue_job(
     payload: Value,
     priority: i64,
 ) -> anyhow::Result<JobId> {
-    let id = Uuid::new_v4().to_string();
-    let now = now_rfc3339();
-    sqlx::query(
-        r#"
-        INSERT INTO jobs (id, kind, payload_json, status, priority, created_at, updated_at)
-        VALUES (?, ?, ?, ?, ?, ?, ?)
-        "#,
-    )
-    .bind(&id)
-    .bind(kind.as_str())
-    .bind(payload.to_string())
-    .bind(JobStatus::Queued.as_str())
-    .bind(priority)
-    .bind(&now)
-    .bind(&now)
-    .execute(db)
-    .await?;
+    let ids = enqueue_jobs(db, tx, kind, vec![payload], priority).await?;
+    ids.into_iter()
+        .next()
+        .ok_or_else(|| anyhow::anyhow!("job insert returned no id"))
+}
 
+pub async fn enqueue_jobs(
+    db: &SqlitePool,
+    tx: &mpsc::Sender<JobSignal>,
+    kind: JobKind,
+    payloads: Vec<Value>,
+    priority: i64,
+) -> anyhow::Result<Vec<JobId>> {
+    if payloads.is_empty() {
+        return Ok(Vec::new());
+    }
+
+    let now = now_rfc3339();
+    let candidate_rows = payloads
+        .into_iter()
+        .map(|payload| (Uuid::new_v4().to_string(), payload.to_string()))
+        .collect::<Vec<_>>();
+
+    let mut rows = Vec::new();
+    for (id, payload) in candidate_rows {
+        let existing = sqlx::query_scalar::<_, i64>(
+            r#"
+            SELECT COUNT(*) FROM jobs
+            WHERE kind = ?
+              AND payload_json = ?
+              AND status IN ('queued', 'running')
+            "#,
+        )
+        .bind(kind.as_str())
+        .bind(&payload)
+        .fetch_one(db)
+        .await?;
+        if existing == 0 {
+            rows.push((id, payload));
+        }
+    }
+
+    if rows.is_empty() {
+        return Ok(Vec::new());
+    }
+
+    let mut builder: QueryBuilder<Sqlite> = QueryBuilder::new(
+        "INSERT INTO jobs (id, kind, payload_json, status, priority, created_at, updated_at) ",
+    );
+    builder.push_values(rows.iter(), |mut row, (id, payload)| {
+        row.push_bind(id)
+            .push_bind(kind.as_str())
+            .push_bind(payload)
+            .push_bind(JobStatus::Queued.as_str())
+            .push_bind(priority)
+            .push_bind(&now)
+            .push_bind(&now);
+    });
+    builder.build().execute(db).await?;
     let _ = tx.send(JobSignal::NewWork).await;
-    Ok(id)
+    Ok(rows.into_iter().map(|(id, _)| id).collect())
 }
 
 pub async fn claim_next_job(db: &SqlitePool) -> anyhow::Result<Option<Job>> {
     let now = now_rfc3339();
-    let mut tx = db.begin().await?;
-    let row = sqlx::query(
-        r#"
-        SELECT id FROM jobs
-        WHERE status = 'queued'
-          AND (run_after IS NULL OR run_after <= ?)
-        ORDER BY priority DESC, created_at ASC
-        LIMIT 1
-        "#,
-    )
-    .bind(&now)
-    .fetch_optional(&mut *tx)
-    .await?;
-
-    let Some(row) = row else {
-        tx.commit().await?;
-        return Ok(None);
-    };
-    let id: String = row.try_get("id")?;
-
-    sqlx::query(
+    let job = sqlx::query_as::<_, Job>(
         r#"
         UPDATE jobs
         SET status = 'running', locked_at = ?, updated_at = ?
-        WHERE id = ?
+        WHERE id = (
+            SELECT id FROM jobs
+            WHERE status = 'queued'
+              AND (run_after IS NULL OR run_after <= ?)
+            ORDER BY priority DESC, created_at ASC
+            LIMIT 1
+        )
+        RETURNING *
         "#,
     )
     .bind(&now)
     .bind(&now)
-    .bind(&id)
-    .execute(&mut *tx)
+    .bind(&now)
+    .fetch_optional(db)
     .await?;
-
-    let job = sqlx::query_as::<_, Job>("SELECT * FROM jobs WHERE id = ?")
-        .bind(&id)
-        .fetch_one(&mut *tx)
-        .await?;
-    tx.commit().await?;
-    Ok(Some(job))
+    Ok(job)
 }
 
 pub async fn reset_stale_running_jobs(db: &SqlitePool) -> anyhow::Result<()> {

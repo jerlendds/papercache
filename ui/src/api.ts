@@ -45,13 +45,78 @@ export type Job = {
   updated_at: string;
 };
 
-async function requestJson<T>(url: string, init?: RequestInit): Promise<T> {
-  const response = await fetch(url, {
-    headers: { 'Content-Type': 'application/json', ...(init?.headers ?? {}) },
+export type ImportedFolder = {
+  id: string;
+  path: string;
+  recursive: boolean;
+  enabled: boolean;
+  last_scan_at?: string | null;
+  document_count: number;
+};
+
+export class ApiError extends Error {
+  constructor(
+    public status: number,
+    public statusText: string,
+    message: string,
+  ) {
+    super(message);
+    this.name = 'ApiError';
+  }
+}
+
+const AUTH_TOKEN_KEY = 'papercache.authToken';
+
+export function getAuthToken() {
+  return window.localStorage.getItem(AUTH_TOKEN_KEY) ?? '';
+}
+
+export function setAuthToken(token: string) {
+  const value = token.trim();
+  if (value) {
+    window.localStorage.setItem(AUTH_TOKEN_KEY, value);
+  } else {
+    window.localStorage.removeItem(AUTH_TOKEN_KEY);
+  }
+}
+
+function withAuth(init: RequestInit = {}): RequestInit {
+  const token = getAuthToken();
+  if (!token) return init;
+  return {
     ...init,
+    headers: {
+      ...(init.headers ?? {}),
+      Authorization: `Bearer ${token}`,
+    },
+  };
+}
+
+async function requestJson<T>(url: string, init?: RequestInit): Promise<T> {
+  const headers = {
+    'Content-Type': 'application/json',
+    ...(init?.headers ?? {}),
+  };
+  const response = await fetch(url, {
+    ...init,
+    headers,
   });
   if (!response.ok) {
-    throw new Error(`${response.status} ${response.statusText}`);
+    let message = `${response.status} ${response.statusText}`;
+    try {
+      const body = (await response.json()) as { error?: unknown };
+      if (typeof body.error === 'string' && body.error.trim()) {
+        message = body.error;
+      }
+    } catch {
+      try {
+        const text = await response.text();
+        if (text.trim()) message = text.trim();
+      } catch {
+        // Keep the status text fallback.
+      }
+    }
+    throw new ApiError(response.status, response.statusText, message);
   }
   return response.json() as Promise<T>;
 }
@@ -74,10 +139,27 @@ export const api = {
   },
 
   async updateClassification(documentId: string, classification: Classification) {
-    return requestJson<{ status: string }>(`/api/documents/${documentId}/classification`, {
+    return requestJson<{ status: string }>(`/api/documents/${documentId}/classification`, withAuth({
       method: 'PUT',
       body: JSON.stringify(classification),
-    });
+    }));
+  },
+
+  async folders() {
+    return requestJson<ImportedFolder[]>('/api/folders');
+  },
+
+  async importFolder(path: string, recursive: boolean) {
+    return requestJson<{ folder_id: string; status: string }>('/api/folders', withAuth({
+      method: 'POST',
+      body: JSON.stringify({ path, recursive }),
+    }));
+  },
+
+  async disableFolder(folderId: string) {
+    return requestJson<{ status: string }>(`/api/folders/${folderId}`, withAuth({
+      method: 'DELETE',
+    }));
   },
 
   async jobs() {

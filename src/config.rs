@@ -5,12 +5,14 @@ use crate::util::fs::default_data_dir;
 #[derive(Debug, Clone)]
 pub struct AppConfig {
     pub data_dir: PathBuf,
+    pub auth_token_path: PathBuf,
     pub database_url: String,
     pub tantivy_dir: PathBuf,
     pub covers_dir: PathBuf,
     pub page_cache_dir: PathBuf,
     pub logs_dir: PathBuf,
     pub port: u16,
+    pub show_token: bool,
 }
 
 impl AppConfig {
@@ -20,6 +22,7 @@ impl AppConfig {
             .ok()
             .and_then(|value| value.parse::<u16>().ok())
             .unwrap_or(3141);
+        let mut show_token = false;
 
         let mut args = std::env::args().skip(1);
         while let Some(arg) = args.next() {
@@ -36,8 +39,11 @@ impl AppConfig {
                         .ok_or_else(|| anyhow::anyhow!("--port requires a value"))?;
                     port = value.parse()?;
                 }
+                "--show-token" => {
+                    show_token = true;
+                }
                 "--help" | "-h" => {
-                    println!("papercache [--data-dir PATH] [--port PORT]");
+                    println!("papercache [--data-dir PATH] [--port PORT] [--show-token]");
                     std::process::exit(0);
                 }
                 other => anyhow::bail!("unknown argument: {other}"),
@@ -46,6 +52,7 @@ impl AppConfig {
 
         let database_url = format!("sqlite://{}", data_dir.join("app.sqlite").display());
         Ok(Self {
+            auth_token_path: data_dir.join("token.json"),
             tantivy_dir: data_dir.join("tantivy"),
             covers_dir: data_dir.join("covers"),
             page_cache_dir: data_dir.join("page-cache"),
@@ -53,6 +60,7 @@ impl AppConfig {
             data_dir,
             database_url,
             port,
+            show_token,
         })
     }
 

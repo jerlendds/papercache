@@ -33,10 +33,10 @@ pub fn default_data_dir() -> PathBuf {
         .join("papercache")
 }
 
-pub fn is_pdf(path: &Path) -> bool {
+pub fn is_supported_document(path: &Path) -> bool {
     path.extension()
         .and_then(|ext| ext.to_str())
-        .is_some_and(|ext| ext.eq_ignore_ascii_case("pdf"))
+        .is_some_and(|ext| matches!(ext.to_ascii_lowercase().as_str(), "pdf" | "html" | "htm"))
 }
 
 pub fn is_skipped_dir(path: &Path) -> bool {

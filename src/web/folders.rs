@@ -1,3 +1,5 @@
+use std::path::PathBuf;
+
 use actix_web::{HttpRequest, HttpResponse, Scope, web};
 use serde::{Deserialize, Serialize};
 use sqlx::Row;
@@ -34,14 +36,39 @@ async fn post(
     body: web::Json<ImportFolderRequest>,
 ) -> AppResult<HttpResponse> {
     require_write_auth(&req, &state)?;
-    let path = std::path::PathBuf::from(&body.path);
+    tracing::info!(
+        path = %body.path,
+        recursive = body.recursive.unwrap_or(true),
+        "folder import requested"
+    );
+    let path = normalize_import_path(&body.path);
     if !path.exists() || !path.is_dir() {
-        return Err(AppError::BadRequest(
-            "path must be an existing directory".to_string(),
-        ));
+        tracing::warn!(
+            path = %body.path,
+            resolved_path = %path.display(),
+            exists = path.exists(),
+            is_dir = path.is_dir(),
+            "folder import rejected"
+        );
+        return Err(AppError::BadRequest(format!(
+            "path must be an existing directory: {}",
+            path.display()
+        )));
     }
-    let canonical = path.canonicalize()?;
+    let canonical = path.canonicalize().map_err(|error| {
+        tracing::warn!(
+            path = %body.path,
+            ?error,
+            "folder import canonicalization failed"
+        );
+        error
+    })?;
     let canonical_str = canonical.to_string_lossy().to_string();
+    tracing::info!(
+        path = %body.path,
+        canonical_path = %canonical_str,
+        "folder import path canonicalized"
+    );
     let folder_id =
         folders::upsert_folder(&state.db, &canonical_str, body.recursive.unwrap_or(true)).await?;
     let job_id = enqueue_job(
@@ -58,10 +85,50 @@ async fn post(
             job_id,
             kind: JobKind::ScanFolder.as_str().to_string(),
         });
+    tracing::info!(
+        folder_id = %folder_id,
+        kind = JobKind::ScanFolder.as_str(),
+        "folder import scan queued"
+    );
     Ok(HttpResponse::Accepted().json(ImportFolderResponse {
         folder_id,
         status: "queued",
     }))
+}
+
+fn normalize_import_path(value: &str) -> PathBuf {
+    let trimmed = value.trim();
+    let unquoted = trimmed
+        .strip_prefix('"')
+        .and_then(|value| value.strip_suffix('"'))
+        .or_else(|| {
+            trimmed
+                .strip_prefix('\'')
+                .and_then(|value| value.strip_suffix('\''))
+        })
+        .unwrap_or(trimmed);
+
+    if unquoted == "~" {
+        if let Some(home) = home_dir() {
+            return home;
+        }
+    }
+    if let Some(rest) = unquoted
+        .strip_prefix("~/")
+        .or_else(|| unquoted.strip_prefix("~\\"))
+    {
+        if let Some(home) = home_dir() {
+            return home.join(rest);
+        }
+    }
+
+    PathBuf::from(unquoted)
+}
+
+fn home_dir() -> Option<PathBuf> {
+    std::env::var_os("HOME")
+        .or_else(|| std::env::var_os("USERPROFILE"))
+        .map(PathBuf::from)
 }
 
 #[derive(Debug, Serialize)]
@@ -108,4 +175,21 @@ async fn delete(
     require_write_auth(&req, &state)?;
     folders::disable_folder(&state.db, &id).await?;
     Ok(HttpResponse::Accepted().json(serde_json::json!({ "status": "disabled" })))
+}
+
+#[cfg(test)]
+mod tests {
+    use super::normalize_import_path;
+
+    #[test]
+    fn normalize_import_path_strips_wrapping_quotes() {
+        assert_eq!(
+            normalize_import_path("\"/tmp/papers\"").to_string_lossy(),
+            "/tmp/papers"
+        );
+        assert_eq!(
+            normalize_import_path("'/tmp/papers'").to_string_lossy(),
+            "/tmp/papers"
+        );
+    }
 }

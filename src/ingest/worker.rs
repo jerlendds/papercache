@@ -66,9 +66,15 @@ async fn drain_jobs(
             }
             Err(error) => {
                 let message = error.to_string();
-                if let Err(mark_error) =
-                    jobs::mark_failed_or_retry(db, job_signal_tx, event_tx, &job, &message, false)
-                        .await
+                if let Err(mark_error) = jobs::mark_failed_or_retry(
+                    db,
+                    job_signal_tx,
+                    event_tx,
+                    &job,
+                    &message,
+                    is_permanent_job_error(&message),
+                )
+                .await
                 {
                     tracing::error!(?mark_error, job_id = %job.id, "failed to update failed job");
                 }
@@ -111,4 +117,12 @@ async fn run_job(
         other => anyhow::bail!("unknown job kind: {other}"),
     }
     Ok(())
+}
+
+fn is_permanent_job_error(message: &str) -> bool {
+    message.contains("not a valid PDF")
+        || message.contains("too small to be a valid PDF")
+        || message.contains("invalid PDF header")
+        || message.contains("unsupported document extension")
+        || message.contains("couldn't parse input: invalid file header")
 }

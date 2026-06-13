@@ -6,7 +6,6 @@ import { ViewToggle } from "../components/ViewToggle";
 import { DocumentResults } from "../components/DocumentResults";
 import { Icon } from "../components/Icon";
 import type { Notify } from "../components/types";
-import { sampleDocuments, sampleSearchResults } from "../components/utils";
 
 export function SearchPage(props: { notify: Notify }) {
   const [query, setQuery] = createSignal("");
@@ -18,17 +17,17 @@ export function SearchPage(props: { notify: Notify }) {
       return await api.search(value.trim(), 36, 0);
     } catch {
       props.notify("Search failed", "error");
-      return { results: sampleSearchResults(value) };
+      return { results: [] };
     }
   });
-  const suggestions = createMemo(() => {
-    const value = query().trim().toLowerCase();
-    if (!value || submitted() === query()) return [];
-    return sampleDocuments
-      .filter((document) =>
-        `${document.title} ${document.path}`.toLowerCase().includes(value),
-      )
-      .slice(0, 5);
+  const [suggestions] = createResource(query, async (value) => {
+    const trimmed = value.trim();
+    if (!trimmed || submitted() === value) return [];
+    try {
+      return await api.documents(5, 0, trimmed);
+    } catch {
+      return [];
+    }
   });
 
   const runSearch = () => {
@@ -53,9 +52,9 @@ export function SearchPage(props: { notify: Notify }) {
             }}
           />
         </div>
-        <Show when={suggestions().length > 0}>
+        <Show when={(suggestions() ?? []).length > 0}>
           <div class="suggestions" role="listbox">
-            <For each={suggestions()}>
+            <For each={suggestions() ?? []}>
               {(item) => (
                 <button
                   role="option"

@@ -5,7 +5,12 @@ pub mod folders;
 pub mod jobs;
 pub mod models;
 
-use sqlx::{SqlitePool, sqlite::SqlitePoolOptions};
+use std::{str::FromStr, time::Duration};
+
+use sqlx::{
+    SqlitePool,
+    sqlite::{SqliteConnectOptions, SqliteJournalMode, SqlitePoolOptions, SqliteSynchronous},
+};
 use uuid::Uuid;
 
 pub async fn open_sqlite(database_url: &str) -> anyhow::Result<SqlitePool> {
@@ -15,13 +20,16 @@ pub async fn open_sqlite(database_url: &str) -> anyhow::Result<SqlitePool> {
         }
     }
 
+    let options = SqliteConnectOptions::from_str(database_url)?
+        .create_if_missing(true)
+        .foreign_keys(true)
+        .journal_mode(SqliteJournalMode::Wal)
+        .synchronous(SqliteSynchronous::Normal)
+        .busy_timeout(Duration::from_secs(5));
+
     let pool = SqlitePoolOptions::new()
         .max_connections(8)
-        .connect(database_url)
-        .await?;
-
-    sqlx::query("PRAGMA foreign_keys = ON")
-        .execute(&pool)
+        .connect_with(options)
         .await?;
     Ok(pool)
 }

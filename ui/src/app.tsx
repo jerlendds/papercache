@@ -2,6 +2,7 @@ import { Match, Switch, createEffect, createSignal, onCleanup } from "solid-js";
 import { createStore } from "solid-js/store";
 
 import { Sidebar } from "./components/Sidebar";
+import { SettingsModal } from "./components/SettingsModal";
 import { ToastStack } from "./components/ToastStack";
 import { JobsPage } from "./pages/JobsPage";
 import { LibraryPage } from "./pages/LibraryPage";
@@ -10,9 +11,20 @@ import { SearchPage } from "./pages/SearchPage";
 import type { Route, Toast, ToastKind } from "./components/types";
 import { eventText } from "./components/utils";
 
+type AppEvent = {
+  type?: string;
+  kind?: string;
+  error?: string;
+  folder_id?: string;
+  document_id?: string;
+  discovered?: number;
+};
+
 export function App() {
-  const [route, setRoute] = createSignal<Route>("search");
+  const [route, setRoute] = createSignal<Route>("library");
+  const [settingsOpen, setSettingsOpen] = createSignal(false);
   const [toasts, setToasts] = createStore<Toast[]>([]);
+  const importProgress = new Map<string, { imported: number; total?: number }>();
 
   const notify = (message: string, kind: ToastKind = "info") => {
     const id = Date.now() + Math.floor(Math.random() * 1000);
@@ -22,16 +34,88 @@ export function App() {
     }, 3600);
   };
 
+  const upsertToast = (
+    key: string,
+    message: string,
+    kind: ToastKind = "info",
+    autoDismiss = false,
+  ) => {
+    const index = toasts.findIndex((toast) => toast.key === key);
+    if (index >= 0) {
+      setToasts(index, "message", message);
+      setToasts(index, "kind", kind);
+      if (autoDismiss) {
+        const id = toasts[index].id;
+        window.setTimeout(() => {
+          setToasts((items) => items.filter((item) => item.id !== id));
+        }, 3600);
+      }
+      return;
+    }
+
+    const id = Date.now() + Math.floor(Math.random() * 1000);
+    setToasts(toasts.length, { id, key, message, kind });
+    if (autoDismiss) {
+      window.setTimeout(() => {
+        setToasts((items) => items.filter((item) => item.id !== id));
+      }, 3600);
+    }
+  };
+
+  const updateImportToast = (folderId: string) => {
+    const progress = importProgress.get(folderId);
+    if (!progress) return;
+    const total = progress.total ?? 0;
+    if (progress.total === 0) {
+      upsertToast(`import:${folderId}`, "0/0 PDF files imported!", "success", true);
+      return;
+    }
+    if (total > 0) {
+      const imported = Math.min(progress.imported, total);
+      const done = imported >= total;
+      upsertToast(
+        `import:${folderId}`,
+        done
+          ? `${imported}/${total} PDF files imported!`
+          : `${imported}/${total} PDF files imported...`,
+        done ? "success" : "info",
+        done,
+      );
+      return;
+    }
+    upsertToast(`import:${folderId}`, "Scanning folder for PDFs...", "info");
+  };
+
+  const handleEvent = (event: AppEvent) => {
+    window.dispatchEvent(
+      new CustomEvent("papercache:event", { detail: event }),
+    );
+
+    if (event.type === "folder_scan_completed" && event.folder_id) {
+      const progress = importProgress.get(event.folder_id) ?? { imported: 0 };
+      progress.total = event.discovered ?? 0;
+      importProgress.set(event.folder_id, progress);
+      updateImportToast(event.folder_id);
+      return;
+    }
+
+    if (event.type === "document_ready" && event.folder_id) {
+      const progress = importProgress.get(event.folder_id) ?? { imported: 0 };
+      progress.imported += 1;
+      importProgress.set(event.folder_id, progress);
+      updateImportToast(event.folder_id);
+      return;
+    }
+
+    const text = eventText(event);
+    if (text) notify(text.message, text.kind);
+  };
+
   createEffect(() => {
     const source = new EventSource("/api/events");
     source.onmessage = (message) => {
       try {
-        const event = JSON.parse(message.data) as {
-          type?: string;
-          error?: string;
-        };
-        const text = eventText(event);
-        if (text) notify(text.message, text.kind);
+        handleEvent(JSON.parse(message.data) as AppEvent);
       } catch {
         notify("Notification received", "info");
       }
@@ -42,7 +126,11 @@ export function App() {
 
   return (
     <div class="app-shell">
-      <Sidebar route={route()} onNavigate={setRoute} />
+      <Sidebar
+        route={route()}
+        onNavigate={setRoute}
+        onOpenSettings={() => setSettingsOpen(true)}
+      />
       <main class="main-view">
         <Switch>
           <Match when={route() === "search"}>
@@ -74,6 +162,10 @@ export function App() {
           </Match>
         </Switch>
       </main>
+      <SettingsModal
+        open={settingsOpen()}
+        onClose={() => setSettingsOpen(false)}
+      />
       <ToastStack toasts={toasts} />
     </div>
   );

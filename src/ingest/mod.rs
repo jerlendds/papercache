@@ -1,5 +1,6 @@
 pub mod chunker;
 pub mod classifier;
+pub mod html;
 pub mod pdf;
 pub mod pipeline;
 pub mod scanner;

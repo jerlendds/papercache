@@ -1,8 +1,9 @@
-import { For, createMemo, createResource, createSignal } from "solid-js";
+import { For, Show, createMemo, createResource, createSignal } from "solid-js";
 
 import { api } from "../api";
+import { EmptyState } from "../components/EmptyState";
 import { PageHeader } from "../components/PageHeader";
-import { formatTime, humanize, sampleJobs } from "../components/utils";
+import { formatTime, humanize } from "../components/utils";
 
 export function JobsPage() {
   const [sortKey, setSortKey] = createSignal<
@@ -12,7 +13,7 @@ export function JobsPage() {
     try {
       return await api.jobs();
     } catch {
-      return sampleJobs();
+      return [];
     }
   });
   const sortedJobs = createMemo(() => {
@@ -50,30 +51,35 @@ export function JobsPage() {
           </div>
         }
       />
-      <div class="job-table" role="table" aria-label="Job queue">
-        <div class="job-row header" role="row">
-          <span>Kind</span>
-          <span>Status</span>
-          <span>Attempts</span>
-          <span>Updated</span>
-          <span>Error</span>
+      <Show
+        when={sortedJobs().length > 0}
+        fallback={<EmptyState label={jobs.loading ? "Loading jobs..." : "No jobs yet"} />}
+      >
+        <div class="job-table" role="table" aria-label="Job queue">
+          <div class="job-row header" role="row">
+            <span>Kind</span>
+            <span>Status</span>
+            <span>Attempts</span>
+            <span>Updated</span>
+            <span>Error</span>
+          </div>
+          <For each={sortedJobs()}>
+            {(job) => (
+              <div class="job-row" role="row">
+                <span>{humanize(job.kind)}</span>
+                <span class={`status-pill ${job.status}`}>
+                  {humanize(job.status)}
+                </span>
+                <span>
+                  {job.attempts}/{job.max_attempts}
+                </span>
+                <span>{formatTime(job.updated_at)}</span>
+                <span class="error-text">{job.error ?? ""}</span>
+              </div>
+            )}
+          </For>
         </div>
-        <For each={sortedJobs()}>
-          {(job) => (
-            <div class="job-row" role="row">
-              <span>{humanize(job.kind)}</span>
-              <span class={`status-pill ${job.status}`}>
-                {humanize(job.status)}
-              </span>
-              <span>
-                {job.attempts}/{job.max_attempts}
-              </span>
-              <span>{formatTime(job.updated_at)}</span>
-              <span class="error-text">{job.error ?? ""}</span>
-            </div>
-          )}
-        </For>
-      </div>
+      </Show>
     </section>
   );
 }

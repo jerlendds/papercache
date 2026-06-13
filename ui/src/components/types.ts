@@ -6,6 +6,7 @@ export type Toast = {
   id: number;
   message: string;
   kind: ToastKind;
+  key?: string;
 };
 
 export type Notify = (message: string, kind?: ToastKind) => void;

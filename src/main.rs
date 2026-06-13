@@ -28,6 +28,13 @@ async fn main() -> anyhow::Result<()> {
     sqlx::migrate!("./migrations").run(&db).await?;
     db::jobs::reset_stale_running_jobs(&db).await?;
     let auth_token = db::get_or_create_auth_token(&db).await?;
+    std::fs::write(
+        &config.auth_token_path,
+        serde_json::to_vec_pretty(&serde_json::json!({ "token": &auth_token }))?,
+    )?;
+    if config.show_token {
+        tracing::info!(auth_token = %auth_token, "papercache auth token");
+    }
 
     let asset_store = Arc::new(AssetStore::new(config.covers_dir.clone())?);
 
@@ -72,6 +79,7 @@ async fn main() -> anyhow::Result<()> {
     tracing::info!(
         port = config.port,
         data_dir = %config.data_dir.display(),
+        token_file = %config.auth_token_path.display(),
         "starting papercache"
     );
     HttpServer::new(move || App::new().app_data(state.clone()).configure(web::configure))
@@ -83,5 +91,9 @@ async fn main() -> anyhow::Result<()> {
 }
 
 fn init_tracing() {
-    tracing_subscriber::fmt().init();
+    let filter = tracing_subscriber::EnvFilter::from_default_env()
+        // lopdf logs unsupported inline-image filter warnings for PDFs that can still be
+        // indexed normally; keep actual parser errors visible without spamming imports.
+        .add_directive("lopdf::parser=error".parse().expect("valid log directive"));
+    tracing_subscriber::fmt().with_env_filter(filter).init();
 }

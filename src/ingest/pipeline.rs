@@ -1,4 +1,5 @@
 use sqlx::SqlitePool;
+use std::io::Read;
 use tokio::sync::broadcast;
 
 use crate::{
@@ -9,7 +10,7 @@ use crate::{
         models::DocumentStatus,
     },
     index::commands::IndexCommand,
-    ingest::{chunker::chunk_pages, classifier, pdf, thumbnails},
+    ingest::{chunker::chunk_pages, classifier, html, pdf, thumbnails},
     util::{hash::sha256_file, time::now_rfc3339},
     web::events::AppEvent,
 };
@@ -22,6 +23,10 @@ pub async fn ingest_pdf(
     document_id: &str,
 ) -> anyhow::Result<()> {
     let document = documents::get(db, document_id).await?;
+    if document.status == DocumentStatus::Failed.as_str() {
+        return Ok(());
+    }
+
     let path = std::path::PathBuf::from(&document.path);
     if !path.exists() {
         sqlx::query("UPDATE documents SET status = 'missing', updated_at = ? WHERE id = ?")
@@ -35,6 +40,12 @@ pub async fn ingest_pdf(
             })
             .await;
         return Ok(());
+    }
+
+    if let Err(error) = validate_supported_file(&path) {
+        let message = error.to_string();
+        documents::mark_failed(db, document_id, &message).await?;
+        anyhow::bail!(message);
     }
 
     let _ = event_tx.send(AppEvent::DocumentStage {
@@ -60,11 +71,19 @@ pub async fn ingest_pdf(
         document_id: document_id.to_string(),
         stage: "extract_text".to_string(),
     });
-    let extract = tokio::task::spawn_blocking({
+    let extract_result = tokio::task::spawn_blocking({
         let path = path.clone();
-        move || pdf::extract(&path)
+        move || extract_text(&path)
     })
-    .await??;
+    .await?;
+    let extract = match extract_result {
+        Ok(extract) => extract,
+        Err(error) => {
+            let message = error.to_string();
+            documents::mark_failed(db, document_id, &message).await?;
+            anyhow::bail!(message);
+        }
+    };
 
     let all_text = extract
         .pages
@@ -125,7 +144,7 @@ pub async fn ingest_pdf(
         INSERT INTO document_processing_state
           (document_id, source_file_size, source_modified_at, source_sha256, text_extraction_version,
            thumbnail_version, classifier_version, chunker_version, updated_at)
-        VALUES (?, ?, ?, ?, 'lopdf-v1', 'placeholder-v1', 'rules-v1', 'chunker-v1', ?)
+        VALUES (?, ?, ?, ?, ?, 'placeholder-v1', 'rules-v1', 'chunker-v1', ?)
         ON CONFLICT(document_id) DO UPDATE SET
           source_file_size = excluded.source_file_size,
           source_modified_at = excluded.source_modified_at,
@@ -142,6 +161,7 @@ pub async fn ingest_pdf(
     .bind(document.file_size)
     .bind(document.modified_at)
     .bind(&source_hash)
+    .bind(&extract.text_extraction_version)
     .bind(now)
     .execute(db)
     .await?;
@@ -153,6 +173,75 @@ pub async fn ingest_pdf(
         .await;
     let _ = event_tx.send(AppEvent::DocumentReady {
         document_id: document_id.to_string(),
+        folder_id: document.folder_id,
     });
     Ok(())
+}
+
+struct TextExtract {
+    title: Option<String>,
+    page_count: i64,
+    pages: Vec<crate::ingest::chunker::PageText>,
+    text_extraction_version: String,
+}
+
+fn validate_supported_file(path: &std::path::Path) -> anyhow::Result<()> {
+    let extension = path
+        .extension()
+        .and_then(|ext| ext.to_str())
+        .unwrap_or_default()
+        .to_ascii_lowercase();
+
+    match extension.as_str() {
+        "pdf" => validate_pdf_header(path),
+        "html" | "htm" => Ok(()),
+        other => anyhow::bail!("unsupported document extension: {other}"),
+    }
+}
+
+fn validate_pdf_header(path: &std::path::Path) -> anyhow::Result<()> {
+    let metadata = std::fs::metadata(path)?;
+    if metadata.len() == 0 {
+        anyhow::bail!("empty file; not a valid PDF");
+    }
+    if metadata.len() < 5 {
+        anyhow::bail!("file is too small to be a valid PDF");
+    }
+
+    let mut file = std::fs::File::open(path)?;
+    let mut header = [0_u8; 5];
+    file.read_exact(&mut header)?;
+    if &header != b"%PDF-" {
+        anyhow::bail!("invalid PDF header; file does not start with %PDF-");
+    }
+    Ok(())
+}
+
+fn extract_text(path: &std::path::Path) -> anyhow::Result<TextExtract> {
+    let extension = path
+        .extension()
+        .and_then(|ext| ext.to_str())
+        .unwrap_or_default()
+        .to_ascii_lowercase();
+    match extension.as_str() {
+        "pdf" => {
+            let extract = pdf::extract(path)?;
+            Ok(TextExtract {
+                title: extract.title,
+                page_count: extract.page_count,
+                pages: extract.pages,
+                text_extraction_version: "lopdf-v1".to_string(),
+            })
+        }
+        "html" | "htm" => {
+            let extract = html::extract(path)?;
+            Ok(TextExtract {
+                title: extract.title,
+                page_count: 1,
+                pages: extract.pages,
+                text_extraction_version: "html-basic-v1".to_string(),
+            })
+        }
+        other => anyhow::bail!("unsupported document extension: {other}"),
+    }
 }

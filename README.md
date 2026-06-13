@@ -2,6 +2,12 @@
 
 Your research library, indexed where it lives. Local-first. Single binary. Built with love in Rust.
 
+## Development
+
+```bash
+cd ui && npm run build && cd .. && cargo run
+```
+
 ## Why?
 
 I have thousands of PDF papers on my computer which are unfortunately mostly unorganized. I want a more effective solution for automatically organizing and classifying my document collection. So I've started `papercache`. The idea is to create something lightweight that will run locally as background daemon 24/7 which indexes at night, or when requested, so the local models I use via `LMStudio` for classification/RAG/etc don't use up all the compute I have when I'm busy with developing other things. I'm already running WakApi as a background daemon for tracking my coding time and I quite like this pattern.
@@ -12,7 +18,7 @@ Papercache is an event-driven PDF ingestion pipeline with a persistent job queue
 
 In plain terms, `papercache` is a small local service that watches folders you choose and builds a searchable library from the PDF papers already on your computer. It does not move or reorganize your files. Instead, it records where each PDF lives, extracts text from it, breaks that text into searchable chunks, creates a simple cover image, classifies the document with deterministic starter rules, and stores the results in a local SQLite database and Tantivy full-text index.
 
-The app is designed to run as a background daemon on your own machine. By default it listens only on `127.0.0.1:3141`, stores its data under the platform app-data directory, and can be pointed somewhere else with `--data-dir`. API writes require a local auth token generated on first startup, so accidental writes from unrelated local pages are harder to trigger.
+The app is designed to run as a background daemon on your own machine. By default it listens only on `127.0.0.1:3141`, stores its data under the platform app-data directory, and can be pointed somewhere else with `--data-dir`. API writes require a local auth token generated on first startup and sent as `Authorization: Bearer <token>`, so accidental writes from unrelated local pages are harder to trigger. The token is written to `token.json` in the data directory, and can also be printed in startup logs with `--show-token`.
 
 The current implementation includes the backend pieces needed for a first working loop:
 

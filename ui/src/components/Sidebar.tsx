@@ -10,16 +10,16 @@ const routes: Array<{
   icon: string;
 }> = [
   {
-    id: "search",
-    label: "Search",
-    tooltip: "Search indexed PDF text",
-    icon: "search",
-  },
-  {
     id: "library",
     label: "Library",
     tooltip: "Browse indexed papers",
     icon: "library",
+  },
+  {
+    id: "search",
+    label: "Search",
+    tooltip: "Search indexed PDF text",
+    icon: "search",
   },
   {
     id: "chat",
@@ -50,6 +50,7 @@ const routes: Array<{
 export function Sidebar(props: {
   route: Route;
   onNavigate: (route: Route) => void;
+  onOpenSettings: () => void;
 }) {
   return (
     <aside class="sidebar" aria-label="Primary navigation">
@@ -63,7 +64,6 @@ export function Sidebar(props: {
               class="nav-button"
               classList={{ active: props.route === item.id }}
               aria-label={item.label}
-              title={item.tooltip}
               onClick={() => props.onNavigate(item.id)}
             >
               <Icon name={item.icon} />
@@ -74,6 +74,16 @@ export function Sidebar(props: {
           )}
         </For>
       </nav>
+      <button
+        class="nav-button settings-button"
+        aria-label="Settings"
+        onClick={props.onOpenSettings}
+      >
+        <Icon name="settings" />
+        <span class="tooltip" role="tooltip">
+          Settings
+        </span>
+      </button>
     </aside>
   );
 }

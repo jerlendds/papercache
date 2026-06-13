@@ -37,6 +37,10 @@ input {
   padding: 16px 10px;
 }
 
+.settings-button {
+  margin-top: auto;
+}
+
 .brand-mark {
   align-items: center;
   background: #e76f51;
@@ -147,6 +151,35 @@ h2 {
   margin-top: 6px;
 }
 
+.header-actions {
+  align-items: center;
+  display: flex;
+  gap: 10px;
+}
+
+.icon-text-button {
+  align-items: center;
+  background: #2f6f73;
+  border: 0;
+  border-radius: 6px;
+  color: #ffffff;
+  cursor: pointer;
+  display: inline-flex;
+  gap: 8px;
+  height: 38px;
+  padding: 0 12px;
+}
+
+.icon-text-button svg {
+  fill: none;
+  height: 18px;
+  stroke: currentColor;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  stroke-width: 2;
+  width: 18px;
+}
+
 .search-page {
   padding-top: 90px;
 }
@@ -179,7 +212,8 @@ h2 {
 
 .search-box input,
 .library-toolbar input,
-.classification-form input {
+.classification-form input,
+.folder-import-form input {
   border: 0;
   min-width: 0;
   outline: 0;
@@ -270,6 +304,172 @@ h2 {
   height: 42px;
   padding: 0 12px;
   width: min(560px, 100%);
+}
+
+.folder-import-form {
+  align-items: end;
+  display: grid;
+  gap: 12px;
+  grid-template-columns: minmax(260px, 1fr) auto auto;
+}
+
+.folder-import-form label {
+  color: #4d5a64;
+  display: grid;
+  font-size: 13px;
+  font-weight: 700;
+  gap: 6px;
+}
+
+.folder-import-form input[type="text"],
+.folder-import-form label > input:not([type]) {
+  background: #f7f9fa;
+  border: 1px solid #d8dee4;
+  border-radius: 8px;
+  color: #1f2933;
+  height: 42px;
+  padding: 0 12px;
+  width: 100%;
+}
+
+.checkbox-field {
+  align-items: center;
+  display: flex !important;
+  gap: 8px !important;
+  height: 42px;
+}
+
+.checkbox-field input {
+  height: 16px;
+  width: 16px;
+}
+
+.folder-import-form button,
+.folder-row button {
+  background: #2f6f73;
+  border: 0;
+  border-radius: 6px;
+  color: #ffffff;
+  cursor: pointer;
+  height: 42px;
+  padding: 0 14px;
+}
+
+.folder-import-form button:disabled,
+.folder-row button:disabled {
+  background: #b9c2ca;
+  cursor: not-allowed;
+}
+
+.folder-list {
+  display: grid;
+  gap: 8px;
+}
+
+.folder-row {
+  align-items: center;
+  background: #f7f9fa;
+  border: 1px solid #edf0f2;
+  border-radius: 8px;
+  display: grid;
+  gap: 12px;
+  grid-template-columns: minmax(0, 1fr) auto;
+  padding: 10px 12px;
+}
+
+.folder-main {
+  display: grid;
+  gap: 4px;
+  min-width: 0;
+}
+
+.folder-main strong,
+.folder-main span {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.folder-main strong {
+  font-size: 14px;
+}
+
+.folder-main span,
+.folder-empty {
+  color: #66727d;
+  font-size: 13px;
+}
+
+.modal-backdrop {
+  align-items: center;
+  background: rgb(15 20 24 / 46%);
+  display: flex;
+  inset: 0;
+  justify-content: center;
+  padding: 24px;
+  position: fixed;
+  z-index: 60;
+}
+
+.modal {
+  background: #ffffff;
+  border: 1px solid #dce2e7;
+  border-radius: 8px;
+  box-shadow: 0 24px 64px rgb(17 24 39 / 22%);
+  max-height: min(720px, calc(100vh - 48px));
+  overflow: hidden;
+  width: min(760px, 100%);
+}
+
+.modal-header {
+  align-items: center;
+  border-bottom: 1px solid #edf0f2;
+  display: flex;
+  justify-content: space-between;
+  min-height: 58px;
+  padding: 0 16px;
+}
+
+.modal-header button {
+  background: transparent;
+  border: 0;
+  border-radius: 6px;
+  color: #4d5a64;
+  cursor: pointer;
+  font-weight: 700;
+  height: 34px;
+  width: 34px;
+}
+
+.modal-header button:hover {
+  background: #f1f4f6;
+}
+
+.modal-body {
+  display: grid;
+  gap: 16px;
+  max-height: calc(min(720px, 100vh - 48px) - 58px);
+  overflow: auto;
+  padding: 16px;
+}
+
+.settings-field {
+  color: #4d5a64;
+  display: grid;
+  font-size: 13px;
+  font-weight: 700;
+  gap: 6px;
+}
+
+.settings-field input {
+  background: #f7f9fa;
+  border: 1px solid #d8dee4;
+  border-radius: 8px;
+  color: #1f2933;
+  height: 42px;
+  outline: 0;
+  padding: 0 12px;
+  width: 100%;
 }
 
 .virtual-viewport {
@@ -500,6 +700,15 @@ h2 {
     grid-template-columns: 1fr;
   }
 
+  .folder-import-form {
+    align-items: stretch;
+    grid-template-columns: 1fr;
+  }
+
+  .checkbox-field {
+    height: auto;
+  }
+
   .job-row {
     grid-template-columns: 1fr;
     padding: 12px 14px;
@@ -522,5 +731,14 @@ h2 {
   .search-page > .segmented {
     right: 18px;
     top: 18px;
+  }
+
+  .page-header {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+
+  .header-actions {
+    width: 100%;
   }
 }

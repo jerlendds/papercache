@@ -47,7 +47,8 @@ pub fn chunk_pages(document_id: &str, source_hash: &str, pages: &[PageText]) -> 
         text.push_str(page_text);
 
         while text.len() >= target {
-            let split = boundary_at_or_before(&text, target).unwrap_or(target);
+            let split = boundary_at_or_before(&text, target)
+                .unwrap_or_else(|| char_boundary_at_or_before(&text, target));
             let current = text[..split].trim().to_string();
             push_chunk(
                 &mut chunks,
@@ -57,7 +58,7 @@ pub fn chunk_pages(document_id: &str, source_hash: &str, pages: &[PageText]) -> 
                 page_start,
                 page_end,
             );
-            let keep_from = split.saturating_sub(overlap);
+            let keep_from = char_boundary_at_or_before(&text, split.saturating_sub(overlap));
             text = text[keep_from..].to_string();
             page_start = page_end;
         }
@@ -108,4 +109,41 @@ fn boundary_at_or_before(text: &str, max: usize) -> Option<usize> {
         .filter(|(_, ch)| ch.is_whitespace() || *ch == '.')
         .map(|(idx, ch)| idx + ch.len_utf8())
         .last()
+}
+
+fn char_boundary_at_or_before(text: &str, max: usize) -> usize {
+    if max >= text.len() {
+        return text.len();
+    }
+    let mut idx = max;
+    while idx > 0 && !text.is_char_boundary(idx) {
+        idx -= 1;
+    }
+    idx
+}
+
+#[cfg(test)]
+mod tests {
+    use super::{PageText, chunk_pages};
+
+    #[test]
+    fn chunk_pages_handles_multibyte_overlap_boundary() {
+        let text = format!("{}ł{}", "a".repeat(3491), " b".repeat(400));
+        let chunks = chunk_pages("doc", "hash", &[PageText { page: 1, text }]);
+
+        assert!(chunks.len() > 1);
+        assert!(
+            chunks
+                .iter()
+                .all(|chunk| chunk.text.is_char_boundary(chunk.text.len()))
+        );
+    }
+
+    #[test]
+    fn chunk_pages_handles_multibyte_split_fallback() {
+        let text = "ł".repeat(2_500);
+        let chunks = chunk_pages("doc", "hash", &[PageText { page: 1, text }]);
+
+        assert!(chunks.len() > 1);
+    }
 }

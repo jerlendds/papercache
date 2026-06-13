@@ -5,6 +5,7 @@ pub mod folders;
 pub mod health;
 pub mod jobs;
 pub mod search;
+pub mod ui;
 
 use actix_web::{HttpRequest, web};
 
@@ -19,21 +20,27 @@ pub fn configure(cfg: &mut web::ServiceConfig) {
                 .service(jobs::routes())
                 .service(search::routes())
                 .service(events::routes()),
-        );
+        )
+        .default_service(web::route().to(ui::serve));
 }
 
 pub fn require_write_auth(req: &HttpRequest, state: &AppState) -> Result<(), AppError> {
-    let header_ok = req
+    let token = req
         .headers()
-        .get("X-Local-Auth")
+        .get(actix_web::http::header::AUTHORIZATION)
         .and_then(|value| value.to_str().ok())
-        .is_some_and(|value| value == state.auth_token);
-    let cookie_ok = req
-        .cookie("papercache_auth")
-        .is_some_and(|cookie| cookie.value() == state.auth_token);
-    if header_ok || cookie_ok {
+        .and_then(|value| value.strip_prefix("Bearer "))
+        .map(str::trim);
+    if token.is_some_and(|value| value == state.auth_token) {
         Ok(())
     } else {
+        tracing::warn!(
+            path = req.path(),
+            has_authorization_header = req
+                .headers()
+                .contains_key(actix_web::http::header::AUTHORIZATION),
+            "write request rejected by local auth"
+        );
         Err(AppError::Unauthorized)
     }
 }

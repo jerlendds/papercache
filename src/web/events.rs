@@ -6,12 +6,34 @@ use crate::app_state::AppState;
 #[derive(Debug, Clone, Serialize)]
 #[serde(tag = "type", rename_all = "snake_case")]
 pub enum AppEvent {
-    JobQueued { job_id: String, kind: String },
-    JobStarted { job_id: String, kind: String },
-    DocumentDiscovered { document_id: String },
-    DocumentStage { document_id: String, stage: String },
-    DocumentReady { document_id: String },
-    JobFailed { job_id: String, error: String },
+    JobQueued {
+        job_id: String,
+        kind: String,
+    },
+    JobStarted {
+        job_id: String,
+        kind: String,
+    },
+    FolderScanCompleted {
+        folder_id: String,
+        discovered: usize,
+    },
+    DocumentDiscovered {
+        document_id: String,
+        folder_id: String,
+    },
+    DocumentStage {
+        document_id: String,
+        stage: String,
+    },
+    DocumentReady {
+        document_id: String,
+        folder_id: Option<String>,
+    },
+    JobFailed {
+        job_id: String,
+        error: String,
+    },
 }
 
 pub fn routes() -> Scope {

@@ -32,6 +32,20 @@ export function Icon(props: { name: string }) {
           <path d="M5 12h14" />
           <path d="M5 17h10" />
         </Match>
+        <Match when={props.name === 'folder-plus'}>
+          <path d="M4 6h6l2 2h8v10a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2z" />
+          <path d="M12 12v5" />
+          <path d="M9.5 14.5h5" />
+        </Match>
+        <Match when={props.name === 'settings'}>
+          <circle cx="12" cy="12" r="3" />
+          <path d="M12 3v3" />
+          <path d="M12 18v3" />
+          <path d="M4.2 7.5 6.8 9" />
+          <path d="M17.2 15 19.8 16.5" />
+          <path d="M4.2 16.5 6.8 15" />
+          <path d="M17.2 9 19.8 7.5" />
+        </Match>
       </Switch>
     </svg>
   );
