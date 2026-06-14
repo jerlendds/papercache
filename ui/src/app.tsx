@@ -2,6 +2,7 @@ import { Match, Switch, createEffect, createSignal, onCleanup } from "solid-js";
 import { createStore } from "solid-js/store";
 
 import { Sidebar } from "./components/Sidebar";
+import { ChatPaperIntro } from "./components/ChatPaperIntro";
 import { SettingsModal } from "./components/SettingsModal";
 import { ToastStack } from "./components/ToastStack";
 import { JobsPage } from "./pages/JobsPage";
@@ -133,10 +134,7 @@ export function App() {
             <LibraryPage notify={notify} />
           </Match>
           <Match when={route() === "chat"}>
-            <PlaceholderPage
-              title="Chat"
-              body="Chat support will be added after the local retrieval pipeline is ready."
-            />
+            <ChatPaperIntro />
           </Match>
           <Match when={route() === "graph"}>
             <PlaceholderPage
