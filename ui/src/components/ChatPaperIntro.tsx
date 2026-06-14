@@ -1,5 +1,6 @@
 import { For, createEffect, createSignal, onCleanup } from "solid-js";
 
+import { Icon } from "./Icon";
 import "./ChatPaperIntro.css";
 
 type ChatHistoryBook = {
@@ -11,9 +12,10 @@ type ChatHistoryBook = {
 };
 
 type ChatHistoryCard = {
-  role: "Question" | "Answer" | "Citation" | "Note";
+  role: "Question" | "Answer" | "Citation" | "System" | "Note";
   title: string;
   body: string;
+  height?: number;
 };
 
 const CHAT_HISTORY: ChatHistoryBook[] = [
@@ -56,17 +58,28 @@ const CHAT_HISTORY_CARDS: Record<string, ChatHistoryCard[]> =
           "Question",
           "Answer",
           "Citation",
+          "System",
           "Note",
         ];
         const role = roles[index % roles.length];
+        const baseHeight = {
+          Question: 270,
+          Answer: 420,
+          Citation: 330,
+          System: 250,
+          Note: 230,
+        }[role];
         return {
           role,
           title: `${book.title} ${index + 1}`,
+          height: baseHeight + (index % 3) * 34,
           body:
             role === "Citation"
               ? "Placeholder citation card with paper title, page number, and the retrieved passage that grounded the response."
               : role === "Answer"
                 ? `${book.detail} This answer card will hold the generated response and links back to source papers.`
+                : role === "System"
+                  ? "Placeholder system event for retrieval settings, model context, indexing status, or tool activity during this chat."
                 : role === "Note"
                   ? "Placeholder session note for a follow-up thread, unresolved question, or saved insight from the conversation."
                   : "Placeholder user question from this saved research conversation.",
@@ -75,48 +88,90 @@ const CHAT_HISTORY_CARDS: Record<string, ChatHistoryCard[]> =
     ]),
   );
 
-const HISTORY_CARD_HEIGHT = 212;
-const HISTORY_CARD_GAP = 18;
-const HISTORY_ROW_HEIGHT = HISTORY_CARD_HEIGHT + HISTORY_CARD_GAP;
-
 export function ChatPaperIntro() {
   const [open, setOpen] = createSignal(false);
-  const [scrollTop, setScrollTop] = createSignal(0);
+  const [stackScroll, setStackScroll] = createSignal(0);
   const [selectedBook, setSelectedBook] = createSignal<ChatHistoryBook>(
     CHAT_HISTORY[0],
   );
+  let stackScroller: HTMLDivElement | undefined;
+  let stackSection: HTMLElement | undefined;
 
-  createEffect(() => {
-    if (!open()) {
-      document.body.style.overflow = "";
-      return;
-    }
-
-    document.body.style.overflow = "hidden";
-  });
+  const stackProgress = () => {
+    const count = selectedCards().length;
+    if (count === 0) return 0;
+    return Math.min(1, Math.max(0, stackScroll() / count));
+  };
 
   const closePaper = () => setOpen(false);
 
   const openBook = (book: ChatHistoryBook) => {
     setSelectedBook(book);
-    setScrollTop(0);
+    setStackScroll(0);
     setOpen(true);
+    requestAnimationFrame(() => {
+      if (stackScroller) stackScroller.scrollTop = 0;
+    });
   };
 
   const selectedCards = () => CHAT_HISTORY_CARDS[selectedBook().id] ?? [];
 
-  const visibleCards = () => {
-    const cards = selectedCards();
-    const start = Math.max(0, Math.floor(scrollTop() / HISTORY_ROW_HEIGHT) - 2);
-    const end = Math.min(cards.length, start + 8);
-    return cards.slice(start, end).map((card, offset) => ({
-      card,
-      index: start + offset,
-    }));
+  const updateStackScroll = (element: HTMLDivElement) => {
+    const stackTop = stackSection?.offsetTop ?? 0;
+    const stackScrollable = Math.max(
+      1,
+      (stackSection?.offsetHeight ?? element.clientHeight) -
+        element.clientHeight,
+    );
+    const progress = Math.min(
+      1,
+      Math.max(0, (element.scrollTop - stackTop) / stackScrollable),
+    );
+    setStackScroll(progress * selectedCards().length);
   };
 
-  const onStageClick = (event: MouseEvent) => {
-    if (event.target === event.currentTarget) closePaper();
+  const scrollToStackProgress = (progress: number) => {
+    if (!stackScroller || !stackSection) return;
+
+    const stackTop = stackSection.offsetTop;
+    const stackScrollable = Math.max(
+      1,
+      stackSection.offsetHeight - stackScroller.clientHeight,
+    );
+    const nextProgress = Math.min(1, Math.max(0, progress));
+    stackScroller.scrollTop = stackTop + nextProgress * stackScrollable;
+    setStackScroll(nextProgress * selectedCards().length);
+  };
+
+  const updateVirtualScrollbar = (
+    event: PointerEvent & { currentTarget: HTMLDivElement },
+  ) => {
+    const rect = event.currentTarget.getBoundingClientRect();
+    scrollToStackProgress((event.clientY - rect.top) / rect.height);
+  };
+
+  const onVirtualScrollbarPointerDown = (
+    event: PointerEvent & { currentTarget: HTMLDivElement },
+  ) => {
+    event.preventDefault();
+    event.currentTarget.setPointerCapture(event.pointerId);
+    updateVirtualScrollbar(event);
+  };
+
+  const onVirtualScrollbarPointerMove = (
+    event: PointerEvent & { currentTarget: HTMLDivElement },
+  ) => {
+    if (event.currentTarget.hasPointerCapture(event.pointerId)) {
+      updateVirtualScrollbar(event);
+    }
+  };
+
+  const onVirtualScrollbarPointerUp = (
+    event: PointerEvent & { currentTarget: HTMLDivElement },
+  ) => {
+    if (event.currentTarget.hasPointerCapture(event.pointerId)) {
+      event.currentTarget.releasePointerCapture(event.pointerId);
+    }
   };
 
   const onKeyDown = (event: KeyboardEvent) => {
@@ -127,10 +182,6 @@ export function ChatPaperIntro() {
     if (!open()) return;
     window.addEventListener("keydown", onKeyDown);
     onCleanup(() => window.removeEventListener("keydown", onKeyDown));
-  });
-
-  onCleanup(() => {
-    document.body.style.overflow = "";
   });
 
   return (
@@ -196,9 +247,9 @@ export function ChatPaperIntro() {
       <div
         classList={{ "chat-paper-overlay": true, open: open() }}
         aria-hidden={!open()}
-        onClick={onStageClick}
+        ref={stackScroller}
+        onScroll={(event) => updateStackScroll(event.currentTarget)}
       >
-        <div class="chat-stage-label">saved chat · stacked sheets</div>
         <button
           type="button"
           class="chat-paper-close"
@@ -208,40 +259,89 @@ export function ChatPaperIntro() {
           ×
         </button>
 
-        <div class="chat-history-modal">
-          <header class="chat-history-modal-header">
-            <span>{selectedBook().subtitle}</span>
-            <h2>{selectedBook().title}</h2>
-            <p>{selectedBook().detail}</p>
-          </header>
-          <div
-            class="chat-history-scroll"
-            onScroll={(event) => setScrollTop(event.currentTarget.scrollTop)}
-          >
-            <div
-              class="chat-history-spacer"
-              style={{
-                height: `${selectedCards().length * HISTORY_ROW_HEIGHT}px`,
-              }}
-            >
-              <For each={visibleCards()}>
-                {(item) => (
+        <div class="chat-history-intro" aria-hidden="true">
+          <p>{selectedBook().subtitle}</p>
+          <h2>{selectedBook().title}</h2>
+          <span>{selectedBook().detail}</span>
+        </div>
+
+        <main
+          id="chat-stack-scroll"
+          class="chat-stack-scroll"
+          ref={stackSection}
+          style={`--count: ${selectedCards().length}; --scroll: ${stackScroll().toFixed(4)}`}
+        >
+          <div class="chat-stack-stage">
+            <div class="chat-stack-origin" aria-label="Saved chat history paper stack">
+              <div class="chat-stack-pile" aria-hidden="true" />
+
+              <For each={selectedCards()}>
+                {(card, index) => (
                   <article
-                    class="chat-history-sheet"
-                    style={{
-                      transform: `translateY(${item.index * HISTORY_ROW_HEIGHT}px)`,
-                      "z-index": `${selectedCards().length - item.index}`,
+                    classList={{
+                      "chat-history-sheet": true,
+                      [`kind-${card.role.toLowerCase()}`]: true,
+                      "is-gone": stackScroll() - index() >= 1,
                     }}
+                    style={`--i: ${index()}; --sheet-height: ${
+                      card.height ? `${card.height}px` : "var(--chat-sheet-h)"
+                    }`}
                   >
-                    <span>{item.card.role}</span>
-                    <h3>{item.card.title}</h3>
-                    <p>{item.card.body}</p>
+                    <header class="chat-history-sheet-header">
+                      <span>{card.role}</span>
+                      <strong>
+                        {String(index() + 1).padStart(2, "0")} /{" "}
+                        {String(selectedCards().length).padStart(2, "0")}
+                      </strong>
+                    </header>
+                    <div class="chat-history-sheet-body">
+                      <h3>{card.title}</h3>
+                      <p>{card.body}</p>
+                    </div>
                   </article>
                 )}
               </For>
             </div>
           </div>
+        </main>
+
+        <div class="chat-stack-status" aria-live="polite">
+          {stackScroll() >= selectedCards().length - 0.02
+            ? "Stack complete"
+            : `Sheet ${Math.min(
+                selectedCards().length,
+                Math.floor(stackScroll()) + 1,
+              )} / ${selectedCards().length}`}
         </div>
+
+        <form class="chat-drawer-input" onSubmit={(event) => event.preventDefault()}>
+          <Icon name="search" />
+          <input
+            aria-label="Ask about this chat history"
+            placeholder="Ask a follow-up about this chat..."
+          />
+          <button type="submit">Ask</button>
+        </form>
+      </div>
+
+      <div
+        classList={{ "chat-virtual-scrollbar": true, open: open() }}
+        role="scrollbar"
+        aria-controls="chat-stack-scroll"
+        aria-orientation="vertical"
+        aria-valuemin="0"
+        aria-valuemax={selectedCards().length}
+        aria-valuenow={Math.min(
+          selectedCards().length,
+          Math.floor(stackScroll()) + 1,
+        )}
+        style={`--scroll-progress: ${stackProgress().toFixed(4)}`}
+        onPointerDown={onVirtualScrollbarPointerDown}
+        onPointerMove={onVirtualScrollbarPointerMove}
+        onPointerUp={onVirtualScrollbarPointerUp}
+        onPointerCancel={onVirtualScrollbarPointerUp}
+      >
+        <div class="chat-virtual-scrollbar-thumb" />
       </div>
     </section>
   );
