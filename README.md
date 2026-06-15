@@ -5,7 +5,8 @@ Your research library, indexed where it lives. Local-first. Single binary. Built
 ## Development
 
 ```bash
-cd ui && npm run build && cd .. && cargo run
+make watch
+# make build
 ```
 
 - Visit [localhost:3141](http://localhost:3141/)
